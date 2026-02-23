@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "105970645277",
+    "project_id": "geotour-b54c1",
+    "storage_bucket": "geotour-b54c1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:105970645277:android:302ecfe7c721425911c9f4",
+        "android_client_info": {
+          "package_name": "com.example.geotour"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "105970645277-cjajufbh5v4h7glrgv36bu8qih3cdteb.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.geotour",
+            "certificate_hash": "c111ea49c4348f38e7e4792339074a08b9541aae"
+          }
+        },
+        {
+          "client_id": "105970645277-cfjs1fk0tj0rd9bdih6e94js1jqiiors.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBSi-1XosL_G1EGsUKGKu9UZ-SriwLtJOI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "105970645277-cfjs1fk0tj0rd9bdih6e94js1jqiiors.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "105970645277-36uadjo6ld07eftd3d9l4vijqoinu1j1.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.geotour"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
