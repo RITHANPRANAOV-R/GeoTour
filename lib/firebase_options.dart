@@ -64,6 +64,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '105970645277',
     projectId: 'geotour-b54c1',
     storageBucket: 'geotour-b54c1.firebasestorage.app',
+    androidClientId: '105970645277-cjajufbh5v4h7glrgv36bu8qih3cdteb.apps.googleusercontent.com',
+    iosClientId: '105970645277-36uadjo6ld07eftd3d9l4vijqoinu1j1.apps.googleusercontent.com',
     iosBundleId: 'com.example.geotour',
   );
 
@@ -73,6 +75,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '105970645277',
     projectId: 'geotour-b54c1',
     storageBucket: 'geotour-b54c1.firebasestorage.app',
+    androidClientId: '105970645277-cjajufbh5v4h7glrgv36bu8qih3cdteb.apps.googleusercontent.com',
+    iosClientId: '105970645277-36uadjo6ld07eftd3d9l4vijqoinu1j1.apps.googleusercontent.com',
     iosBundleId: 'com.example.geotour',
   );
 

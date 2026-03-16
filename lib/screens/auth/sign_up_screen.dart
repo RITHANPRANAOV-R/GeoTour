@@ -159,7 +159,7 @@ final passwordController = TextEditingController();
         Navigator.pushReplacementNamed(context, "/touristHome");
         break;
       case "police":
-        Navigator.pushReplacementNamed(context, "/policeHome");
+        Navigator.pushReplacementNamed(context, "/policeDashboardChoice");
         break;
       case "medical":
       case "hospital":

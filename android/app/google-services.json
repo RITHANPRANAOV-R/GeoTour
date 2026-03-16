@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "105970645277-8bp90ai5mogt8ijqhp6d60skj96cc880.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.geotour",
+            "certificate_hash": "9fd86b2a372fcf8063fea6c160879d6d8a183383"
+          }
+        },
+        {
           "client_id": "105970645277-cjajufbh5v4h7glrgv36bu8qih3cdteb.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {

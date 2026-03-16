@@ -32,7 +32,7 @@ class _PoliceProfileSetupScreenState extends State<PoliceProfileSetupScreen> {
         "profileCompleted": true,
       });
       await UserService().updateProfileCompleted(user.uid, true, "police");
-      Navigator.pushReplacementNamed(context, "/policeHome");
+      Navigator.pushReplacementNamed(context, "/policeDashboardChoice");
     }
     setState(() => isLoading = false);
   }
