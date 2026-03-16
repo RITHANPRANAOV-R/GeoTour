@@ -10,10 +10,16 @@ class UserService {
   }) async {
     await _db.collection("users").doc(uid).set({
       "email": email,
-      "roles": [role],
+      "roles": FieldValue.arrayUnion([role]),
       "activeRole": role,
-      "profileCompleted": false,
       "createdAt": DateTime.now().toIso8601String(),
+    }, SetOptions(merge: true));
+
+    // Initialize role completion if it doesn't exist
+    await _db.collection("users").doc(uid).set({
+      "roleCompletion": {
+        role: false,
+      }
     }, SetOptions(merge: true));
   }
 
@@ -23,8 +29,12 @@ class UserService {
     return null;
   }
 
-  Future<void> updateProfileCompleted(String uid, bool value) async {
+  Future<void> updateProfileCompleted(String uid, bool value, String role) async {
     await _db.collection("users").doc(uid).set({
+      "roleCompletion": {
+        role: value,
+      },
+      // Keep global flag for backward compatibility if needed, but per-role is primary
       "profileCompleted": value,
     }, SetOptions(merge: true));
   }

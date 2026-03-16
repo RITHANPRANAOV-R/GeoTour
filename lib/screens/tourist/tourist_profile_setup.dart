@@ -93,7 +93,7 @@ class _TouristProfileSetupScreenState extends State<TouristProfileSetupScreen> {
         "updatedAt": DateTime.now().toIso8601String(),
       }, SetOptions(merge: true));
 
-      await UserService().updateProfileCompleted(uid, true);
+      await UserService().updateProfileCompleted(uid, true, "tourist");
 
       setState(() => isLoading = false);
 

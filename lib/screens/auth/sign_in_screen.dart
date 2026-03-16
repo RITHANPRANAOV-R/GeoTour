@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../services/auth_service.dart';
+// Navigation is handled by named routes in main.dart, so logic in screens remains valid as long as route names didn't change.
+// However, I will check if any manual imports need updating.
 import '../../services/user_service.dart';
 
 class SignInScreen extends StatefulWidget {
@@ -35,17 +37,12 @@ class _SignInScreenState extends State<SignInScreen> {
       return;
     }
 
-    setState(() {
-      isLoading = true;
-    });
+    setState(() => isLoading = true);
 
     User? user = await AuthService().signInWithEmailPassword(email, password);
 
     if (user == null) {
-      setState(() {
-        isLoading = false;
-      });
-
+      setState(() => isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Invalid login")),
       );
@@ -54,36 +51,32 @@ class _SignInScreenState extends State<SignInScreen> {
 
     final userData = await UserService().getUserMainDoc(user.uid);
 
-    setState(() {
-      isLoading = false;
-    });
-
     if (userData == null) {
+      setState(() => isLoading = false);
       Navigator.pushReplacementNamed(context, "/signUp");
       return;
     }
 
-    bool completed = userData["profileCompleted"] ?? false;
+    final roles = userData["roles"] as List<dynamic>? ?? [];
 
-    if (completed) {
-      Navigator.pushReplacementNamed(context, "/touristHome");
+    if (roles.length > 1) {
+      setState(() => isLoading = false);
+      Navigator.pushReplacementNamed(context, "/postAuthRoleSelection");
     } else {
-      Navigator.pushReplacementNamed(context, "/touristProfileSetup");
+      final role = userData["activeRole"] ?? roles.first;
+      final roleCompletion = userData["roleCompletion"] as Map<String, dynamic>? ?? {};
+      final isCompleted = roleCompletion[role] ?? false;
+      _navigateBasedOnRoleAndCompletion(role, isCompleted);
     }
   }
 
   Future<void> handleGoogleLogin() async {
-    setState(() {
-      isLoading = true;
-    });
+    setState(() => isLoading = true);
 
     User? user = await AuthService().signInWithGoogle();
 
     if (user == null) {
-      setState(() {
-        isLoading = false;
-      });
-
+      setState(() => isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Google login cancelled")),
       );
@@ -93,30 +86,58 @@ class _SignInScreenState extends State<SignInScreen> {
     final userData = await UserService().getUserMainDoc(user.uid);
 
     if (userData == null) {
-      await UserService().createUserMainDoc(
-        uid: user.uid,
-        email: user.email ?? "",
-        role: "tourist",
-      );
-
-      setState(() {
-        isLoading = false;
-      });
-
-      Navigator.pushReplacementNamed(context, "/touristProfileSetup");
+      setState(() => isLoading = false);
+      Navigator.pushReplacementNamed(context, "/googleInitialRoleSelection");
       return;
     }
 
-    bool completed = userData["profileCompleted"] ?? false;
+    final roles = userData["roles"] as List<dynamic>? ?? [];
 
-    setState(() {
-      isLoading = false;
-    });
-
-    if (completed) {
-      Navigator.pushReplacementNamed(context, "/touristHome");
+    if (roles.length > 1) {
+      setState(() => isLoading = false);
+      Navigator.pushReplacementNamed(context, "/postAuthRoleSelection");
     } else {
-      Navigator.pushReplacementNamed(context, "/touristProfileSetup");
+      final role = userData["activeRole"] ?? roles.first;
+      final roleCompletion = userData["roleCompletion"] as Map<String, dynamic>? ?? {};
+      final isCompleted = roleCompletion[role] ?? false;
+      _navigateBasedOnRoleAndCompletion(role, isCompleted);
+    }
+  }
+
+  void _navigateBasedOnRoleAndCompletion(String role, bool completed) {
+    setState(() => isLoading = false);
+    if (completed) {
+      switch (role) {
+        case "tourist":
+          Navigator.pushReplacementNamed(context, "/touristHome");
+          break;
+        case "police":
+          Navigator.pushReplacementNamed(context, "/policeHome");
+          break;
+        case "medical":
+        case "hospital":
+          Navigator.pushReplacementNamed(context, "/hospitalHome");
+          break;
+        case "admin":
+          Navigator.pushReplacementNamed(context, "/adminHome");
+          break;
+      }
+    } else {
+      switch (role) {
+        case "tourist":
+          Navigator.pushReplacementNamed(context, "/touristProfileSetup");
+          break;
+        case "police":
+          Navigator.pushReplacementNamed(context, "/policeProfileSetup");
+          break;
+        case "medical":
+        case "hospital":
+          Navigator.pushReplacementNamed(context, "/hospitalProfileSetup");
+          break;
+        case "admin":
+          Navigator.pushReplacementNamed(context, "/adminProfileSetup");
+          break;
+      }
     }
   }
 

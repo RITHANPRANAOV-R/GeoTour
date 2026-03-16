@@ -12,7 +12,6 @@ class AuthService {
       );
       return userCredential.user;
     } catch (e) {
-      print("Signup Error: $e");
       return null;
     }
   }
@@ -25,7 +24,6 @@ class AuthService {
       );
       return userCredential.user;
     } catch (e) {
-      print("Login Error: $e");
       return null;
     }
   }
@@ -56,7 +54,6 @@ class AuthService {
 
       return userCredential.user;
     } catch (e) {
-      print("Google Sign-In Error: $e");
       return null;
     }
   }
