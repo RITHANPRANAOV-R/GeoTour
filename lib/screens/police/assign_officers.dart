@@ -19,7 +19,7 @@ class _AssignOfficersScreenState extends State<AssignOfficersScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Assign Officer"),
+        title: const Text("Officer Status"),
         automaticallyImplyLeading: false,
         actions: [
           Padding(

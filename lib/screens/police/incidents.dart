@@ -35,10 +35,20 @@ class IncidentsScreen extends StatelessWidget {
               final incidentDoc = incidents[index];
               final incident = incidentDoc.data() as Map<String, dynamic>;
 
+              // Handle timestamp formatting
+              String dateText = "";
+              if (incident['timestamp'] != null) {
+                final timestamp = incident['timestamp'] as Timestamp;
+                final date = timestamp.toDate();
+                dateText = "${date.day}/${date.month}/${date.year}";
+              } else if (incident['date'] != null) {
+                dateText = incident['date'];
+              }
+
               return IncidentCard(
                 victimName: incident['victimName'] ?? 'Unknown',
                 summary: incident['summary'] ?? 'No details.',
-                date: incident['date'] ?? '',
+                date: dateText,
               );
             },
           );

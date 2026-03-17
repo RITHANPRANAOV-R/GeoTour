@@ -43,9 +43,9 @@ class _PoliceDashboardState extends State<PoliceDashboard> {
             label: "Home",
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person_add_outlined),
-            activeIcon: Icon(Icons.person_add),
-            label: "Assign",
+            icon: Icon(Icons.people_outline),
+            activeIcon: Icon(Icons.people),
+            label: "Officers",
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.history_outlined),

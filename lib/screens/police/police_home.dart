@@ -28,12 +28,15 @@ class PoliceHomeScreen extends StatelessWidget {
                 future: user != null ? policeService.getOfficerProfile(user.uid) : null,
                 builder: (context, snapshot) {
                   String name = "Officer";
-                  bool isAvailable = false;
+                  String status = "offline";
                   if (snapshot.hasData && snapshot.data!.exists) {
                     final data = snapshot.data!.data() as Map<String, dynamic>;
                     name = data['name'] ?? "Officer";
-                    isAvailable = data['isAvailable'] ?? false;
+                    status = data['status'] ?? (data['isAvailable'] == true ? 'available' : 'offline');
                   }
+                  bool isAvailable = status == 'available';
+                  bool onMission = status == 'on_mission';
+
                   return Column(
                     children: [
                       Row(
@@ -49,16 +52,16 @@ class PoliceHomeScreen extends StatelessWidget {
                           StatefulBuilder(
                             builder: (context, setState) {
                               return Switch(
-                                value: isAvailable,
-                                onChanged: (value) async {
+                                value: isAvailable || onMission,
+                                onChanged: onMission ? null : (value) async {
                                   if (user != null) {
                                     await policeService.updateAvailability(user.uid, value);
                                     setState(() {
-                                      isAvailable = value;
+                                      status = value ? 'available' : 'offline';
                                     });
                                   }
                                 },
-                                activeColor: Colors.green,
+                                activeColor: onMission ? Colors.orange : Colors.green,
                               );
                             },
                           ),
@@ -68,9 +71,9 @@ class PoliceHomeScreen extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
                           Text(
-                            isAvailable ? "Available" : "Offline",
+                            onMission ? "On Mission" : (isAvailable ? "Available" : "Offline"),
                             style: TextStyle(
-                              color: isAvailable ? Colors.green : Colors.red,
+                              color: onMission ? Colors.orange : (isAvailable ? Colors.green : Colors.red),
                               fontWeight: FontWeight.bold,
                               fontSize: 12,
                             ),
@@ -135,6 +138,8 @@ class PoliceHomeScreen extends StatelessWidget {
                       name: alert['name'] ?? 'Unknown',
                       timeText: timeText,
                       riskLevel: alert['riskLevel'] ?? 'High',
+                      acceptedBy: alert['acceptedBy'],
+                      acceptedByName: alert['acceptedByName'],
                       onTap: () {
                         Navigator.push(
                           context,
@@ -147,6 +152,8 @@ class PoliceHomeScreen extends StatelessWidget {
                                 'phone': alert['phone'] ?? 'N/A',
                                 'contacts': alert['contacts'] ?? 'N/A',
                                 'threat': alert['threat'] ?? 'N/A',
+                                'acceptedBy': alert['acceptedBy'] ?? '',
+                                'acceptedByName': alert['acceptedByName'] ?? '',
                               },
                             ),
                           ),
@@ -159,6 +166,19 @@ class PoliceHomeScreen extends StatelessWidget {
             ),
           ],
         ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () async {
+          await policeService.createMockAlert();
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Test Alert Created!")),
+            );
+          }
+        },
+        label: const Text("Test Alert"),
+        icon: const Icon(Icons.warning_amber),
+        backgroundColor: Colors.red,
       ),
     );
   }

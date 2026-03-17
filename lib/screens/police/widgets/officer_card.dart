@@ -63,18 +63,24 @@ class OfficerCard extends StatelessWidget {
                 ],
               ),
             ),
-            ElevatedButton(
-              onPressed: (isAvailable && !isOnMission) ? onAssign : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: (isAvailable && !isOnMission) ? Colors.black : Colors.grey,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                disabledBackgroundColor: Colors.grey.shade400,
-                disabledForegroundColor: Colors.white,
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: isOnMission 
+                    ? Colors.orange.shade100 
+                    : (isAvailable ? Colors.green.shade100 : Colors.red.shade100),
+                borderRadius: BorderRadius.circular(12),
               ),
-              child: Text(isOnMission ? "On Mission" : (isAvailable ? "Assign" : "Offline")),
+              child: Text(
+                isOnMission ? "On Mission" : (isAvailable ? "Available" : "Offline"),
+                style: TextStyle(
+                  color: isOnMission 
+                      ? Colors.orange.shade900 
+                      : (isAvailable ? Colors.green.shade900 : Colors.red.shade900),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
             ),
           ],
         ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/police_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class VictimDetailsScreen extends StatelessWidget {
   final Map<String, String> victimData;
@@ -47,29 +48,97 @@ class VictimDetailsScreen extends StatelessWidget {
       ),
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: ElevatedButton(
-          onPressed: () async {
-            await policeService.createIncident(
-              victimName: victimData['name'] ?? 'Unknown',
-              summary: "Police response initiated for threat: ${victimData['threat'] ?? 'N/A'}",
-              riskLevel: victimData['riskLevel'] ?? 'High',
-            );
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Incident response started and logged.")),
+        child: Builder(
+          builder: (context) {
+            final user = FirebaseAuth.instance.currentUser;
+            final String acceptedBy = victimData['acceptedBy'] ?? '';
+            final String acceptedByName = victimData['acceptedByName'] ?? '';
+            final String alertId = victimData['id'] ?? '';
+            
+            if (acceptedBy.isEmpty) {
+              // Not accepted yet
+              return ElevatedButton(
+                onPressed: () async {
+                  if (user == null) return;
+                  
+                  // Get current officer name (we can pass it or fetch)
+                  final officerDoc = await policeService.getOfficerProfile(user.uid);
+                  final officerName = (officerDoc.data() as Map<String, dynamic>?)?['name'] ?? "Officer";
+
+                  bool success = await policeService.acceptAlert(
+                    alertId: alertId,
+                    officerId: user.uid,
+                    officerName: officerName,
+                  );
+
+                  if (context.mounted) {
+                    if (success) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Alert accepted! You are now on mission.")),
+                      );
+                      Navigator.pop(context);
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Could not accept. Already assigned or error.")),
+                      );
+                    }
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.black,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(double.infinity, 56),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+                child: const Text("Accept Alert", style: TextStyle(fontSize: 18)),
               );
-              Navigator.pop(context);
+            } else if (acceptedBy == user?.uid) {
+              // Assigned to current user
+              return ElevatedButton(
+                onPressed: () async {
+                  await policeService.completeMission(
+                    alertId: alertId,
+                    officerId: user!.uid,
+                    alertData: Map<String, dynamic>.from(victimData),
+                  );
+
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Mission completed and moved to incidents.")),
+                    );
+                    Navigator.pop(context);
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(double.infinity, 56),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+                child: const Text("Complete Mission", style: TextStyle(fontSize: 18)),
+              );
+            } else {
+              // Assigned to someone else
+              return Container(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade200,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Center(
+                  child: Text(
+                    "ASSIGNED TO $acceptedByName",
+                    style: TextStyle(
+                      color: Colors.grey.shade700,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              );
             }
           },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.black,
-            foregroundColor: Colors.white,
-            minimumSize: const Size(double.infinity, 56),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-          ),
-          child: const Text("Start Response", style: TextStyle(fontSize: 18)),
         ),
       ),
     );

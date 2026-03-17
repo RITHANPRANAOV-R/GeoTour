@@ -4,6 +4,8 @@ class RiskAlertCard extends StatelessWidget {
   final String name;
   final String timeText;
   final String riskLevel;
+  final String? acceptedBy;
+  final String? acceptedByName;
   final VoidCallback onTap;
 
   const RiskAlertCard({
@@ -11,6 +13,8 @@ class RiskAlertCard extends StatelessWidget {
     required this.name,
     required this.timeText,
     required this.riskLevel,
+    this.acceptedBy,
+    this.acceptedByName,
     required this.onTap,
   });
 
@@ -42,20 +46,44 @@ class RiskAlertCard extends StatelessWidget {
           "Triggered $timeText",
           style: TextStyle(color: Colors.grey.shade600),
         ),
-        trailing: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: _getRiskColor(),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Text(
-            riskLevel,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 12,
+        trailing: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: _getRiskColor(),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                riskLevel,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
             ),
-          ),
+            if (acceptedBy != null) ...[
+              const SizedBox(height: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade200,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  "ASSIGNED",
+                  style: TextStyle(
+                    color: Colors.grey.shade700,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 10,
+                  ),
+                ),
+              ),
+            ],
+          ],
         ),
       ),
     );
