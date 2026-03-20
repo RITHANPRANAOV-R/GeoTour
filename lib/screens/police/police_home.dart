@@ -167,19 +167,6 @@ class PoliceHomeScreen extends StatelessWidget {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () async {
-          await policeService.createMockAlert();
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("Test Alert Created!")),
-            );
-          }
-        },
-        label: const Text("Test Alert"),
-        icon: const Icon(Icons.warning_amber),
-        backgroundColor: Colors.red,
-      ),
     );
   }
 }

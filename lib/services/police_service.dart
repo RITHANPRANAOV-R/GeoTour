@@ -138,17 +138,4 @@ class PoliceService {
     await batch.commit();
   }
 
-  // --- Testing Utilities ---
-
-  Future<void> createMockAlert() async {
-    await _firestore.collection('alerts').add({
-      'name': 'Test Victim ${DateTime.now().second}',
-      'riskLevel': 'Extreme',
-      'threat': 'Suspicious activity near zone ${DateTime.now().minute}',
-      'phone': '9876543210',
-      'contacts': 'Emergency Contact: 9000000000',
-      'timestamp': FieldValue.serverTimestamp(),
-      'status': 'pending',
-    });
-  }
 }

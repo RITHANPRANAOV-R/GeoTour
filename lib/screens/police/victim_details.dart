@@ -201,19 +201,38 @@ class VictimDetailsScreen extends StatelessWidget {
       height: 300,
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.grey.shade200,
+        color: Colors.grey.shade100,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(color: Colors.grey.shade200),
       ),
-      child: const Center(
+      child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.map_outlined, size: 48, color: Colors.grey),
-            SizedBox(height: 10),
+            const SizedBox(
+              width: 40,
+              height: 40,
+              child: CircularProgressIndicator(
+                strokeWidth: 3,
+                color: Colors.black,
+              ),
+            ),
+            const SizedBox(height: 20),
             Text(
-              "Map will be displayed here",
-              style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w500),
+              "Initializing Map Services...",
+              style: TextStyle(
+                color: Colors.grey.shade600,
+                fontWeight: FontWeight.w500,
+                letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              "Waiting for API connection",
+              style: TextStyle(
+                color: Colors.grey.shade400,
+                fontSize: 12,
+              ),
             ),
           ],
         ),

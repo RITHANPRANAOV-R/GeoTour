@@ -16,6 +16,7 @@ import 'screens/police/police_dashboard.dart';
 import 'screens/police/police_dashboard_choice.dart';
 import 'screens/hospital/hospital_home.dart';
 import 'screens/admin/admin_home.dart';
+import 'screens/auth/admin_login_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -52,6 +53,7 @@ class MyApp extends StatelessWidget {
             const PostAuthRoleSelectionScreen(),
         "/googleInitialRoleSelection": (context) =>
             const GoogleInitialRoleSelectionScreen(),
+        "/adminLogin": (context) => const AdminLoginScreen(),
       },
     );
   }
