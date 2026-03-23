@@ -48,26 +48,66 @@ class _IncidentLogsScreenState extends State<IncidentLogsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        title: const Text("Incident Logs"),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        shape: Border(bottom: BorderSide(color: Colors.grey.shade200, width: 1)),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          "Incident Logs",
+          style: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.w800,
+            fontSize: 18,
+            letterSpacing: -0.5,
+          ),
+        ),
+        centerTitle: true,
         actions: [
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _fetchIncidents),
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded, color: Colors.black),
+            onPressed: _fetchIncidents,
+          ),
         ],
       ),
       body: Column(
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            color: Colors.grey.shade50,
+            margin: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFFF1F1F1)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.01),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
             child: Row(
               children: [
-                const Text("Filter Logs:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.blueGrey)),
+                const Icon(Icons.filter_list_rounded, size: 20, color: Colors.grey),
                 const SizedBox(width: 12),
                 Expanded(
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
                       value: _filter,
-                      items: _filterOptions.map((f) => DropdownMenuItem(value: f, child: Text(f, style: const TextStyle(fontSize: 14)))).toList(),
+                      icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.grey),
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        color: Colors.black,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                      items: _filterOptions.map((f) => DropdownMenuItem(value: f, child: Text(f))).toList(),
                       onChanged: _applyFilter,
                       isExpanded: true,
                     ),
@@ -81,22 +121,53 @@ class _IncidentLogsScreenState extends State<IncidentLogsScreen> {
                 ? const Center(child: CircularProgressIndicator())
                 : _filteredIncidents.isEmpty
                     ? const Center(child: Text("No incidents logged."))
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(16),
+                    : ListView.separated(
+                        physics: const BouncingScrollPhysics(),
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
                         itemCount: _filteredIncidents.length,
+                        separatorBuilder: (context, index) => const SizedBox(height: 12),
                         itemBuilder: (context, index) {
                           final log = _filteredIncidents[index];
-                          return Card(
-                            margin: const EdgeInsets.only(bottom: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            child: ListTile(
-                              leading: CircleAvatar(
-                                backgroundColor: _getStatusColor(log['type'] ?? 'default').withOpacity(0.1),
-                                child: Icon(Icons.description_outlined, color: _getStatusColor(log['type'] ?? 'default')),
+                          final typeColor = _getStatusColor(log['type'] ?? 'default');
+                          return Container(
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Colors.white, Color(0xFFFAFAFA)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
                               ),
-                              title: Text("${log['type']} - ${log['user']}", style: const TextStyle(fontWeight: FontWeight.bold)),
-                              subtitle: Text(log['timestamp'] ?? 'Recently'),
-                              trailing: const Icon(Icons.chevron_right, size: 16, color: Colors.grey),
+                              borderRadius: BorderRadius.circular(24),
+                              border: Border.all(color: const Color(0xFFF1F1F1)),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.015),
+                                  blurRadius: 24,
+                                  offset: const Offset(0, 10),
+                                ),
+                              ],
+                            ),
+                            child: ListTile(
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              leading: Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: typeColor.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: Icon(Icons.description_rounded, color: typeColor),
+                              ),
+                              title: Text(
+                                "${log['type']} - ${log['user']}",
+                                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+                              ),
+                              subtitle: Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Text(
+                                  log['timestamp'] ?? 'Recently',
+                                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                                ),
+                              ),
+                              trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey),
                             ),
                           );
                         },

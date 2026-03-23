@@ -1,0 +1,1124 @@
+import 'dart:ui';
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../services/alert_service.dart';
+import '../../services/auth_service.dart';
+import '../../services/geo_service.dart';
+import '../../services/chat_service.dart';
+import '../../models/alert_model.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../../services/hospital_service.dart';
+import '../../models/hospital_model.dart';
+import '../../services/police_service.dart';
+import '../../models/officer_model.dart';
+import 'police_chat_screen.dart';
+import '../common/call_screen.dart';
+
+class EmergencyResponseScreen extends StatefulWidget {
+  const EmergencyResponseScreen({super.key});
+
+  @override
+  State<EmergencyResponseScreen> createState() =>
+      _EmergencyResponseScreenState();
+}
+
+class _EmergencyResponseScreenState extends State<EmergencyResponseScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  String? selectedRisk;
+  String? activeAlertId;
+  bool sosTriggered = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+
+    // Check for existing active alerts
+    AlertService().addListener(_checkActiveAlerts);
+    _checkActiveAlerts();
+  }
+
+  void _checkActiveAlerts() {
+    final alerts = AlertService().alerts;
+
+    // First priority: any alert that is already assigned to an officer
+    final assignedAlert = alerts
+        .where((a) => a.status == 'assigned')
+        .firstOrNull;
+
+    // Second priority: the latest pending alert
+    final pendingAlert = alerts.where((a) => a.status == 'pending').firstOrNull;
+
+    final activeAlert = assignedAlert ?? pendingAlert;
+
+    if (activeAlert != null) {
+      if (mounted) {
+        // If we haven't triggered SOS yet, or if the active ID has changed (e.g. from pending to assigned)
+        if (!sosTriggered || activeAlertId != activeAlert.id) {
+          setState(() {
+            sosTriggered = true;
+            activeAlertId = activeAlert.id;
+            if (activeAlert.status == 'assigned') {
+              _tabController.animateTo(1);
+            }
+          });
+        }
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    AlertService().removeListener(_checkActiveAlerts);
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  void _triggerSOS(String risk) async {
+    final pos = GeoService().currentPosition;
+    final lat = pos?.latitude ?? 0.0;
+    final lng = pos?.longitude ?? 0.0;
+
+    AlertSeverity severity = AlertSeverity.medium;
+    if (risk == "High") severity = AlertSeverity.high;
+    if (risk == "Extreme") severity = AlertSeverity.extreme;
+
+    final id = await AlertService().addAlert(
+      title: "Manual SOS: $risk Risk",
+      description: "User manually triggered SOS signal from Emergency screen.",
+      severity: severity,
+      lat: lat,
+      lng: lng,
+      notifyPolice: true,
+    );
+
+    if (id == null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Failed to trigger SOS. Check your connection."),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      selectedRisk = risk;
+      sosTriggered = true;
+      activeAlertId = id;
+    });
+  }
+
+  void _sendHospitalSOS(String riskLevel) async {
+    final user = AuthService().currentUser;
+    if (user == null) return;
+
+    final pos = GeoService().currentPosition;
+    if (pos == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Waiting for your location...")),
+      );
+      return;
+    }
+
+    // Get medical info preview
+    final profile = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .get();
+    final medInfo = profile.data();
+    final m = medInfo?['medicalInfo'] as Map<String, dynamic>?;
+    final medicalSummary =
+        "Blood: ${m?['bloodGroup'] ?? 'N/A'}, Meds: ${m?['medications'] ?? 'None'}";
+
+    try {
+      // Find nearest hospital from the first document in the pool for now
+      // A more complex implementation would sort by distance
+      final hospitals = await FirebaseFirestore.instance
+          .collection('hospitals')
+          .limit(1)
+          .get();
+      if (hospitals.docs.isEmpty) {
+        throw Exception("No hospitals available");
+      }
+      final nearestHospitalId = hospitals.docs.first.id;
+
+      await HospitalService().triggerHospitalSOS(
+        victimId: user.uid,
+        victimName: medInfo?['name'] ?? "Tourist",
+        lat: pos.latitude,
+        lng: pos.longitude,
+        medicalInfo: medicalSummary,
+        hospitalId: nearestHospitalId,
+        riskLevel: riskLevel,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              "Emergency Medical Alert triggered from Tourist to Nearest Hospital.",
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+        setState(() => sosTriggered = true);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error: ${e.toString()}")));
+      }
+    }
+  }
+
+  void _sendPoliceSOS(String riskLevel) async {
+    final user = AuthService().currentUser;
+    if (user == null) return;
+
+    final pos = GeoService().currentPosition;
+    if (pos == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Location not available. Enable GPS.")),
+      );
+      return;
+    }
+
+    try {
+      // Find nearest available officer
+      final officers = await PoliceService().getAvailableOfficersStream().first;
+      String? nearestOfficerId;
+      if (officers.isNotEmpty) {
+        nearestOfficerId = officers.first.uid;
+      }
+
+      await PoliceService().triggerPoliceSOS(
+        victimId: user.uid,
+        victimName: user.displayName ?? "Tourist",
+        lat: pos.latitude,
+        lng: pos.longitude,
+        threat: "Manual Police SOS",
+        riskLevel: riskLevel,
+        officerId: nearestOfficerId,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              nearestOfficerId != null
+                  ? "Emergency Police Alert triggered from Tourist to Nearest available Officer."
+                  : "Emergency Police Alert broadcasted to all units!",
+            ),
+            backgroundColor: Colors.blue.shade900,
+          ),
+        );
+        setState(() => sosTriggered = true);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  void _showRiskDialog(Function(String) onSelected) {
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: "Dismiss",
+      barrierColor: Colors.black.withValues(alpha: 0.5),
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, anim1, anim2) {
+        return BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Center(
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                width: MediaQuery.of(context).size.width * 0.85,
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.85),
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.5)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 30,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      "Select Risk Level",
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.black,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      "Please assess the current threat level",
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    ...["Low", "Medium", "High", "Extreme"].map((risk) {
+                      Color riskColor;
+                      switch (risk) {
+                        case "Low":
+                          riskColor = Colors.green;
+                          break;
+                        case "Medium":
+                          riskColor = Colors.orange;
+                          break;
+                        case "High":
+                          riskColor = Colors.red;
+                          break;
+                        case "Extreme":
+                          riskColor = Colors.red.shade900;
+                          break;
+                        default:
+                          riskColor = Colors.blue;
+                      }
+
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: GestureDetector(
+                          onTap: () {
+                            Navigator.pop(context);
+                            onSelected(risk);
+                          },
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            decoration: BoxDecoration(
+                              color: riskColor.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: riskColor.withValues(alpha: 0.3),
+                              ),
+                            ),
+                            child: Center(
+                              child: Text(
+                                risk,
+                                style: TextStyle(
+                                  color: riskColor,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+      transitionBuilder: (context, anim1, anim2, child) {
+        return FadeTransition(
+          opacity: anim1,
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.9, end: 1.0).animate(
+              CurvedAnimation(parent: anim1, curve: Curves.easeOutBack),
+            ),
+            child: child,
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: _tabController,
+      builder: (context, _) {
+        return Scaffold(
+          extendBody: true,
+          backgroundColor: const Color(0xFFF8F9FA),
+          appBar: AppBar(
+            backgroundColor: Colors.white,
+            elevation: 0,
+            scrolledUnderElevation: 0,
+            shape: Border(
+              bottom: BorderSide(color: Colors.grey.shade200, width: 1),
+            ),
+            leading: IconButton(
+              icon: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: Colors.black,
+              ),
+              onPressed: () => Navigator.pop(context),
+            ),
+            title: const Text(
+              "Emergency Response",
+              style: TextStyle(
+                color: Colors.black,
+                fontWeight: FontWeight.w800,
+                fontSize: 20,
+                letterSpacing: -0.5,
+              ),
+            ),
+            centerTitle: true,
+            actions: [
+              GestureDetector(
+                onTap: () => _showRiskDialog((risk) => _triggerSOS(risk)),
+                child: Container(
+                  margin: const EdgeInsets.only(right: 16, top: 10, bottom: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade600,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.red.withValues(alpha: 0.2),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: const Center(
+                    child: Text(
+                      "SOS",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 13,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          body: TabBarView(
+            controller: _tabController,
+            children: [
+              _buildMedicalTab(),
+              _buildPoliceTab(),
+              _buildOthersTab(),
+            ],
+          ),
+          bottomNavigationBar: Container(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 30),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(32),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                child: Container(
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(32),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.5),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: TabBar(
+                    controller: _tabController,
+                    indicatorSize: TabBarIndicatorSize.tab,
+                    indicator: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(26),
+                    ),
+                    indicatorPadding: const EdgeInsets.all(6),
+                    labelColor: Colors.black,
+                    unselectedLabelColor: Colors.black54,
+                    labelStyle: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
+                    unselectedLabelStyle: const TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 13,
+                    ),
+                    dividerColor: Colors.transparent,
+                    tabs: const [
+                      Tab(text: "Medical"),
+                      Tab(text: "Police"),
+                      Tab(text: "Others"),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          floatingActionButton:
+              (_tabController.index == 0 || _tabController.index == 1)
+              ? Padding(
+                  padding: const EdgeInsets.only(bottom: 0),
+                  child: FloatingActionButton(
+                    onPressed: () {
+                      _showRiskDialog((risk) {
+                        if (_tabController.index == 0) {
+                          _sendHospitalSOS(risk);
+                        } else {
+                          _sendPoliceSOS(risk);
+                        }
+                      });
+                    },
+                    shape: const CircleBorder(),
+                    backgroundColor: _tabController.index == 0
+                        ? Colors.black
+                        : Colors.blue.shade900,
+                    child: const Icon(Icons.send, color: Colors.white),
+                  ),
+                )
+              : null,
+        );
+      },
+    );
+  }
+
+  Widget _buildMedicalTab() {
+    final user = AuthService().currentUser;
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildMapCard(),
+          const SizedBox(height: 20),
+          const Text(
+            "Nearest Hospital",
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          const SizedBox(height: 12),
+          StreamBuilder<List<HospitalModel>>(
+            stream: HospitalService().getNearestHospitalsStream(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting &&
+                  !snapshot.hasData) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              final hospitals = snapshot.data!;
+              if (hospitals.isEmpty) {
+                return const Text(
+                  "No nearby hospitals found.",
+                  style: TextStyle(color: Colors.grey),
+                );
+              }
+
+              return Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Column(
+                  children: [
+                    // Map Illustration Placeholder
+                    Container(
+                      height: 100,
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                        image: const DecorationImage(
+                          image: NetworkImage(
+                            "https://img.freepik.com/free-vector/city-map-with-navigation-pins_23-2148293527.jpg",
+                          ),
+                          fit: BoxFit.cover,
+                          opacity: 0.6,
+                        ),
+                      ),
+                      child: const Center(
+                        child: Icon(Icons.map, color: Colors.blue, size: 40),
+                      ),
+                    ),
+                    ...hospitals.take(3).map((hospital) {
+                      return Column(
+                        children: [
+                          _hospitalItem(
+                            hospital.name,
+                            "1.5 km", // Default for now
+                          ),
+                          const Divider(),
+                        ],
+                      );
+                    }),
+                    const Align(
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        "Navigate to near by Hospital",
+                        style: TextStyle(fontSize: 10, color: Colors.grey),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            "Medical Info",
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          const SizedBox(height: 12),
+          StreamBuilder<DocumentSnapshot>(
+            stream: AuthService().getUserProfileStream(user?.uid ?? ""),
+            builder: (context, snapshot) {
+              Map<String, dynamic> info = {
+                "Blood Group": "N/A",
+                "Current Medications": "None",
+                "Allergies": "None",
+                "Surgeries": "None",
+              };
+
+              if (snapshot.hasData && snapshot.data!.exists) {
+                final data = snapshot.data!.data() as Map<String, dynamic>;
+                if (data.containsKey('medicalInfo')) {
+                  final m = data['medicalInfo'] as Map<String, dynamic>;
+                  info["Blood Group"] = m['bloodGroup'] ?? "N/A";
+                  info["Current Medications"] = m['medications'] ?? "None";
+                  info["Allergies"] = m['allergies'] ?? "None";
+                  info["Surgeries"] = m['surgeries'] ?? "None";
+                }
+              }
+
+              return Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: info.entries
+                      .map((e) => _infoItem(e.key, e.value))
+                      .toList(),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 100), // Space for bottom navigation
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPoliceTab() {
+    return StreamBuilder<DocumentSnapshot>(
+      stream: activeAlertId != null
+          ? FirebaseFirestore.instance
+                .collection('alerts')
+                .doc(activeAlertId)
+                .snapshots()
+          : const Stream.empty(),
+      builder: (context, snapshot) {
+        final data = snapshot.data?.data() as Map<String, dynamic>?;
+        final status = data?['status'] ?? 'pending';
+        final officerName = data?['acceptedByName'];
+        final bool isAssigned =
+            (activeAlertId != null && data != null) &&
+            (status == 'assigned' || officerName != null);
+
+        return SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildMapCard(),
+              const SizedBox(height: 20),
+              if (!isAssigned) ...[
+                StreamBuilder<List<OfficerModel>>(
+                  stream: PoliceService().getAvailableOfficersStream(),
+                  builder: (context, officerSnapshot) {
+                    if (officerSnapshot.connectionState ==
+                            ConnectionState.waiting &&
+                        !officerSnapshot.hasData) {
+                      return const Center(
+                        child: Column(
+                          children: [
+                            CircularProgressIndicator(color: Colors.blue),
+                            SizedBox(height: 16),
+                            Text(
+                              "Finding nearby available officers...",
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    final officers = officerSnapshot.data ?? [];
+                    if (officers.isEmpty) {
+                      return const Center(
+                        child: Text(
+                          "No officers currently available nearby",
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      );
+                    }
+
+                    return SizedBox(
+                      height: 120,
+                      child: ListView.builder(
+                        physics: const BouncingScrollPhysics(),
+                        scrollDirection: Axis.horizontal,
+                        itemCount: officers.length,
+                        itemBuilder: (context, index) {
+                          final off = officers[index];
+                          return Container(
+                            width: 100,
+                            margin: const EdgeInsets.only(right: 12),
+                            child: Column(
+                              children: [
+                                CircleAvatar(
+                                  radius: 30,
+                                  backgroundColor: Colors.blue.shade50,
+                                  child: const Icon(
+                                    Icons.person,
+                                    color: Colors.blue,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  off.name,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                Text(
+                                  "Badge ${off.badgeNumber}",
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    color: Colors.grey,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 24),
+              ] else ...[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: const [
+                    Text(
+                      "Estimated Arrival",
+                      style: TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
+                    Text(
+                      "Active Tracking...",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+                Text(
+                  "Officer $officerName is en-route tracking your live location",
+                  style: const TextStyle(fontSize: 12),
+                ),
+                const SizedBox(height: 16),
+                _buildResponderCard(
+                  officerName ?? "Officer",
+                  data['acceptedBy'] ?? "#0000",
+                  chatId: activeAlertId!,
+                  recipientId: data['acceptedBy'],
+                ),
+              ],
+              const SizedBox(height: 100),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildOthersTab() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return const Center(child: Text("Please log in"));
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: ChatService().getConversationsStream(user.uid),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text("Error loading chats: ${snapshot.error}"),
+            ),
+          );
+        }
+
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.chat_bubble_outline, size: 48, color: Colors.grey),
+                SizedBox(height: 16),
+                Text(
+                  "No active conversations",
+                  style: TextStyle(color: Colors.grey),
+                ),
+              ],
+            ),
+          );
+        }
+
+        final conversations = snapshot.data!.docs;
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: conversations.length,
+          itemBuilder: (context, index) {
+            final chat = conversations[index].data() as Map<String, dynamic>;
+            final chatId = conversations[index].id;
+            final participants = List<String>.from(chat['participants'] ?? []);
+            final otherUserId = participants.firstWhere(
+              (id) => id != user.uid,
+              orElse: () => "",
+            );
+
+            return FutureBuilder<DocumentSnapshot>(
+              future: FirebaseFirestore.instance
+                  .collection('police')
+                  .doc(otherUserId)
+                  .get(),
+              builder: (context, offSnap) {
+                String name = "Officer";
+                String? image;
+                if (offSnap.hasData && offSnap.data!.exists) {
+                  final offData = offSnap.data!.data() as Map<String, dynamic>;
+                  name = offData['name'] ?? "Officer";
+                  image = offData['image'];
+                }
+
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundImage: image != null
+                          ? NetworkImage(image)
+                          : null,
+                      child: image == null ? const Icon(Icons.person) : null,
+                    ),
+                    title: Text(
+                      name,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: Text(
+                      chat['lastMessage'] ?? "No messages yet",
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => PoliceChatScreen(
+                            chatId: chatId,
+                            recipientId: otherUserId,
+                            recipientName: name,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildMapCard() {
+    return ListenableBuilder(
+      listenable: GeoService(),
+      builder: (context, _) {
+        final pos = GeoService().currentPosition;
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: const [
+                  Text(
+                    "Your location",
+                    style: TextStyle(color: Colors.grey, fontSize: 13),
+                  ),
+                  Icon(Icons.refresh, size: 20, color: Colors.grey),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Container(
+                height: 140,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.location_on,
+                        color: Colors.red,
+                        size: 48,
+                      ),
+                      if (pos != null)
+                        Text(
+                          "${pos.latitude.toStringAsFixed(4)}, ${pos.longitude.toStringAsFixed(4)}",
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: Colors.grey,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                pos != null
+                    ? "Last location update: Just now"
+                    : "Waiting for GPS...",
+                style: const TextStyle(fontSize: 11, color: Colors.grey),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _hospitalItem(String name, String dist) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Expanded(
+          child: Text(
+            name,
+            style: const TextStyle(fontSize: 13),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(dist, style: const TextStyle(fontSize: 13, color: Colors.grey)),
+      ],
+    );
+  }
+
+  Widget _infoItem(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(color: Colors.grey, fontSize: 11)),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+          ),
+          const Divider(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildResponderCard(
+    String name,
+    String badge, {
+    required String chatId,
+    required String recipientId,
+    String? imageUrl,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Column(
+        children: [
+          const Text(
+            "Assigned Responder",
+            style: TextStyle(color: Colors.grey, fontSize: 12),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.network(
+                  imageUrl ?? "https://via.placeholder.com/80",
+                  height: 80,
+                  width: 80,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    height: 80,
+                    width: 80,
+                    color: Colors.grey.shade200,
+                    child: const Icon(Icons.person, color: Colors.grey),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Officer $name",
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                    Text(
+                      "Badge #$badge",
+                      style: const TextStyle(color: Colors.grey, fontSize: 12),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: _actionButton(
+                  Icons.call,
+                  "Call",
+                  Colors.black,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CallScreen(
+                          name: name,
+                          role: "Police Officer",
+                          image: imageUrl,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _actionButton(
+                  Icons.chat,
+                  "Chat",
+                  Colors.black,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PoliceChatScreen(
+                          chatId: chatId,
+                          recipientId: recipientId,
+                          recipientName: name,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _actionButton(
+    IconData icon,
+    String label,
+    Color color, {
+    VoidCallback? onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: Colors.white, size: 18),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

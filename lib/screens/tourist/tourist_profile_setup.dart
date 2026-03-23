@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:intl/intl.dart';
+import 'location_picker_screen.dart';
 
 import '../../services/user_service.dart';
 
@@ -21,7 +24,8 @@ class _TouristProfileSetupScreenState extends State<TouristProfileSetupScreen> {
   final TextEditingController emergencyNameController = TextEditingController();
   final TextEditingController emergencyRelationController =
       TextEditingController();
-  final TextEditingController emergencyPhoneController = TextEditingController();
+  final TextEditingController emergencyPhoneController =
+      TextEditingController();
 
   String gender = "Male";
   bool termsAccepted = false;
@@ -41,6 +45,9 @@ class _TouristProfileSetupScreenState extends State<TouristProfileSetupScreen> {
   }
 
   Future<void> saveTouristDetails() async {
+    // Phone validation regex
+    final phoneRegex = RegExp(r'^\+?[0-9]{10,15}$');
+
     if (usernameController.text.isEmpty ||
         phoneController.text.isEmpty ||
         dobController.text.isEmpty ||
@@ -48,8 +55,22 @@ class _TouristProfileSetupScreenState extends State<TouristProfileSetupScreen> {
         emergencyNameController.text.isEmpty ||
         emergencyRelationController.text.isEmpty ||
         emergencyPhoneController.text.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Please fill all details")));
+      return;
+    }
+
+    if (!phoneRegex.hasMatch(phoneController.text.trim())) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please fill all details")),
+        const SnackBar(content: Text("Please enter a valid phone number")),
+      );
+      return;
+    }
+
+    if (!phoneRegex.hasMatch(emergencyPhoneController.text.trim())) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please enter a valid emergency phone number")),
       );
       return;
     }
@@ -67,9 +88,9 @@ class _TouristProfileSetupScreenState extends State<TouristProfileSetupScreen> {
 
     if (user == null) {
       setState(() => isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("User not logged in")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("User not logged in")));
       return;
     }
 
@@ -95,15 +116,65 @@ class _TouristProfileSetupScreenState extends State<TouristProfileSetupScreen> {
 
       await UserService().updateProfileCompleted(uid, true, "tourist");
 
+      if (!mounted) return;
       setState(() => isLoading = false);
 
-      Navigator.pushReplacementNamed(context, "/touristHome");
+      Navigator.pushReplacementNamed(context, "/medicalInfoSetup");
     } catch (e) {
+      if (!mounted) return;
       setState(() => isLoading = false);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error saving details: $e")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Error saving details: $e")));
+    }
+  }
+
+  void _showDatePicker() {
+    showCupertinoModalPopup(
+      context: context,
+      builder: (_) => Container(
+        height: 300,
+        color: Colors.white,
+        child: Column(
+          children: [
+            SizedBox(
+              height: 230,
+              child: CupertinoDatePicker(
+                mode: CupertinoDatePickerMode.date,
+                initialDateTime: DateTime(2000, 1, 1),
+                maximumDate: DateTime.now(),
+                onDateTimeChanged: (val) {
+                  setState(() {
+                    dobController.text = DateFormat('yyyy-MM-dd').format(val);
+                  });
+                },
+              ),
+            ),
+            CupertinoButton(
+              child: const Text('OK'),
+              onPressed: () => Navigator.of(context).pop(),
+            )
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickLocation() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const LocationPickerScreen(
+          title: "Select your address",
+        ),
+      ),
+    );
+
+    if (result != null) {
+      setState(() {
+        locationController.text = result['name'];
+      });
     }
   }
 
@@ -115,6 +186,7 @@ class _TouristProfileSetupScreenState extends State<TouristProfileSetupScreen> {
       backgroundColor: Colors.white,
       body: SafeArea(
         child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
           padding: const EdgeInsets.all(20),
           child: Column(
             children: [
@@ -147,9 +219,21 @@ class _TouristProfileSetupScreenState extends State<TouristProfileSetupScreen> {
               ),
               const SizedBox(height: 20),
               _inputField("Username", usernameController),
-              _inputField("Phone number", phoneController),
-              _inputField("Date of birth", dobController),
-              _inputField("Location", locationController),
+              _inputField("Phone number", phoneController, keyboardType: TextInputType.phone),
+              _inputField(
+                "Date of birth",
+                dobController,
+                readOnly: true,
+                onTap: _showDatePicker,
+              ),
+              _inputField(
+                "Location",
+                locationController,
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.location_on, color: Colors.blue),
+                  onPressed: _pickLocation,
+                ),
+              ),
               const SizedBox(height: 20),
               const Align(
                 alignment: Alignment.centerLeft,
@@ -162,7 +246,9 @@ class _TouristProfileSetupScreenState extends State<TouristProfileSetupScreen> {
                 children: [
                   Radio(
                     value: "Male",
+                    // ignore: deprecated_member_use
                     groupValue: gender,
+                    // ignore: deprecated_member_use
                     onChanged: (value) {
                       setState(() => gender = value.toString());
                     },
@@ -170,7 +256,9 @@ class _TouristProfileSetupScreenState extends State<TouristProfileSetupScreen> {
                   const Text("Male"),
                   Radio(
                     value: "Female",
+                    // ignore: deprecated_member_use
                     groupValue: gender,
+                    // ignore: deprecated_member_use
                     onChanged: (value) {
                       setState(() => gender = value.toString());
                     },
@@ -178,7 +266,9 @@ class _TouristProfileSetupScreenState extends State<TouristProfileSetupScreen> {
                   const Text("Female"),
                   Radio(
                     value: "Other",
+                    // ignore: deprecated_member_use
                     groupValue: gender,
+                    // ignore: deprecated_member_use
                     onChanged: (value) {
                       setState(() => gender = value.toString());
                     },
@@ -197,7 +287,7 @@ class _TouristProfileSetupScreenState extends State<TouristProfileSetupScreen> {
               const SizedBox(height: 10),
               _inputField("Name", emergencyNameController),
               _inputField("Relationship", emergencyRelationController),
-              _inputField("Phone number", emergencyPhoneController),
+              _inputField("Phone number", emergencyPhoneController, keyboardType: TextInputType.phone),
               const SizedBox(height: 20),
               Row(
                 children: [
@@ -237,16 +327,25 @@ class _TouristProfileSetupScreenState extends State<TouristProfileSetupScreen> {
     );
   }
 
-  Widget _inputField(String label, TextEditingController controller) {
+  Widget _inputField(
+    String label,
+    TextEditingController controller, {
+    bool readOnly = false,
+    VoidCallback? onTap,
+    TextInputType keyboardType = TextInputType.text,
+    Widget? suffixIcon,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: TextField(
         controller: controller,
+        readOnly: readOnly,
+        onTap: onTap,
+        keyboardType: keyboardType,
         decoration: InputDecoration(
           labelText: label,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          suffixIcon: suffixIcon,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         ),
       ),
     );

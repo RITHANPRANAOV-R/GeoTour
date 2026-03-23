@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/app_drawer.dart';
 import 'system_monitoring.dart';
 import 'geofence_management.dart';
 import 'user_access_control.dart';
@@ -10,155 +11,212 @@ class AdminHomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      extendBody: true,
+      backgroundColor: const Color(0xFFF8F9FA),
+      drawer: const AppDrawer(),
       appBar: AppBar(
         backgroundColor: Colors.white,
-        centerTitle: true,
-        elevation: 1,
-        shadowColor: Colors.black12,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        shape: Border(
+          bottom: BorderSide(color: Colors.grey.shade200, width: 1),
+        ),
         leading: Builder(
           builder: (context) => IconButton(
-            icon: const Icon(Icons.menu, color: Colors.black),
-            onPressed: () {},
+            icon: const Icon(Icons.menu_rounded, color: Colors.black, size: 28),
+            onPressed: () => Scaffold.of(context).openDrawer(),
           ),
         ),
         title: const Text(
-          "Geotour",
+          "GeoTour Admin",
           style: TextStyle(
             color: Colors.black,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
+            fontWeight: FontWeight.w900,
+            fontSize: 28,
+            letterSpacing: -1.0,
           ),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout, color: Colors.black, size: 20),
-            onPressed: () {
-              Navigator.pushReplacementNamed(context, "/signIn");
-            },
-          ),
-          const SizedBox(width: 8),
-        ],
+        centerTitle: true,
       ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 500),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "Welcome, Admin",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Container(
-                  padding: const EdgeInsets.all(24.0),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.04),
-                        blurRadius: 15,
-                        offset: const Offset(0, 5),
+      body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 100),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Welcome,",
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.grey,
+                          ),
+                        ),
+                        Text(
+                          "Admin",
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.black,
+                            letterSpacing: -1.0,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 8,
                       ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      _buildMenuItem(
-                        context,
-                        "System Monitoring",
-                        onTap: () => _navigateTo(context, const SystemMonitoringScreen()),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.green.withValues(alpha: 0.2),
+                        ),
                       ),
-                      const SizedBox(height: 12),
-                      _buildMenuItem(
-                        context,
-                        "Geo-Fence Management",
-                        onTap: () => _navigateTo(context, const GeofenceManagementScreen()),
+                      child: const Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 4,
+                            backgroundColor: Colors.green,
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            "System Live",
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.green,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 12),
-                      _buildMenuItem(
-                        context,
-                        "User & Access Control",
-                        onTap: () => _navigateTo(context, const UserAccessControlScreen()),
-                      ),
-                      const SizedBox(height: 12),
-                      _buildMenuItem(
-                        context,
-                        "Incident Logs",
-                        onTap: () => _navigateTo(context, const IncidentLogsScreen()),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.only(bottom: 32.0, top: 16.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SizedBox(
-              width: 140,
-              child: ElevatedButton(
-                onPressed: () {
-                   Navigator.pushReplacementNamed(context, "/signIn");
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFE0E0E0),
-                  foregroundColor: Colors.black87,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                ),
-                child: const Text(
-                  "Home",
-                  style: TextStyle(fontWeight: FontWeight.w500),
+                    ),
+                  ],
                 ),
               ),
-            ),
-          ],
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 24.0),
+                child: Text(
+                  "System Controls",
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.grey,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: Column(
+                  children: [
+                    _buildMenuItem(
+                      context,
+                      "System Monitoring",
+                      icon: Icons.monitor_heart_rounded,
+                      onTap: () =>
+                          _navigateTo(context, const SystemMonitoringScreen()),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildMenuItem(
+                      context,
+                      "Geo-Fence Management",
+                      icon: Icons.map_rounded,
+                      onTap: () => _navigateTo(
+                        context,
+                        const GeofenceManagementScreen(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildMenuItem(
+                      context,
+                      "User & Access Control",
+                      icon: Icons.admin_panel_settings_rounded,
+                      onTap: () =>
+                          _navigateTo(context, const UserAccessControlScreen()),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildMenuItem(
+                      context,
+                      "Incident Logs",
+                      icon: Icons.receipt_long_rounded,
+                      onTap: () =>
+                          _navigateTo(context, const IncidentLogsScreen()),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildMenuItem(BuildContext context, String title, {required VoidCallback onTap}) {
+  Widget _buildMenuItem(
+    BuildContext context,
+    String title, {
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
         decoration: BoxDecoration(
-          color: const Color(0xFFF8F8F8),
-          borderRadius: BorderRadius.circular(15),
+          gradient: const LinearGradient(
+            colors: [Colors.white, Color(0xFFFAFAFA)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: const Color(0xFFF1F1F1)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.015),
+              blurRadius: 24,
+              offset: const Offset(0, 10),
+            ),
+          ],
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w400,
-                color: Colors.black87,
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: Colors.black, size: 22),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.black,
+                  letterSpacing: -0.5,
+                ),
               ),
             ),
             const Icon(
-              Icons.chevron_right,
+              Icons.arrow_forward_ios_rounded,
               color: Colors.grey,
-              size: 20,
+              size: 14,
             ),
           ],
         ),
@@ -167,11 +225,6 @@ class AdminHomeScreen extends StatelessWidget {
   }
 
   void _navigateTo(BuildContext context, Widget screen) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => screen,
-      ),
-    );
+    Navigator.push(context, MaterialPageRoute(builder: (context) => screen));
   }
 }

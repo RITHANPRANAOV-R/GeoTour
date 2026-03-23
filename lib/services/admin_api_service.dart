@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -22,7 +24,7 @@ class AdminAPIService {
       }
       return [];
     } catch (e) {
-      print("Error fetching monitor data: $e");
+      debugPrint("Error fetching monitor data: $e");
       return [];
     }
   }
@@ -61,7 +63,7 @@ class AdminAPIService {
 
       return response.statusCode == 200 || response.statusCode == 201;
     } catch (e) {
-      print("Error adding zone: $e");
+      debugPrint("Error adding zone: $e");
       return false;
     }
   }
@@ -96,7 +98,7 @@ class AdminAPIService {
         allUsers.addAll(json.decode(response.body));
       }
     } catch (e) {
-      print("REST Backend unreachable: $e");
+      debugPrint("REST Backend unreachable: $e");
     }
 
     // 2. Fetch from Firebase Firestore (Main App Database)
@@ -116,7 +118,7 @@ class AdminAPIService {
         }
       }
     } catch (e) {
-      print("Error fetching Firestore users: $e");
+      debugPrint("Error fetching Firestore users: $e");
     }
 
     return allUsers;
@@ -198,7 +200,7 @@ class AdminAPIService {
         allIncidents.addAll(json.decode(response.body));
       }
     } catch (e) {
-      print("REST Backend unreachable: $e");
+      debugPrint("REST Backend unreachable: $e");
     }
 
     // 2. Fetch from Firebase Firestore (Police Mission Logs)
@@ -220,7 +222,7 @@ class AdminAPIService {
         });
       }
     } catch (e) {
-      print("Error fetching Firestore incidents: $e");
+      debugPrint("Error fetching Firestore incidents: $e");
     }
 
     return allIncidents;

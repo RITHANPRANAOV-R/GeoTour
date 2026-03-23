@@ -1,0 +1,16 @@
+Analyzing dashboard_screen.dart...                              
+
+   info • The imported package 'table_calendar' isn't a dependency of the importing package • lib/screens/tourist/dashboard_screen.dart:3:8 • depend_on_referenced_packages
+  error • Target of URI doesn't exist: 'package:table_calendar/table_calendar.dart' • lib/screens/tourist/dashboard_screen.dart:3:8 • uri_does_not_exist
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/tourist/dashboard_screen.dart:50:36 • deprecated_member_use
+  error • The method 'TableCalendar' isn't defined for the type '_HomePageState' • lib/screens/tourist/dashboard_screen.dart:159:26 • undefined_method
+  error • The name 'HeaderStyle' isn't a class • lib/screens/tourist/dashboard_screen.dart:163:40 • creation_with_non_type
+  error • The method 'isSameDay' isn't defined for the type '_HomePageState' • lib/screens/tourist/dashboard_screen.dart:168:30 • undefined_method
+  error • The method 'CalendarStyle' isn't defined for the type '_HomePageState' • lib/screens/tourist/dashboard_screen.dart:177:36 • undefined_method
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/tourist/dashboard_screen.dart:288:43 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/tourist/dashboard_screen.dart:331:53 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/tourist/dashboard_screen.dart:360:43 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/tourist/dashboard_screen.dart:470:45 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/tourist/dashboard_screen.dart:541:70 • deprecated_member_use
+
+12 issues found. (ran in 1.0s)

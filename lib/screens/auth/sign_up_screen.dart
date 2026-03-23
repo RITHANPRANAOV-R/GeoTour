@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/auth_service.dart';
 import '../../services/user_service.dart';
+import '../../widgets/google_logo.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -22,9 +23,11 @@ final passwordController = TextEditingController();
     final password = passwordController.text.trim();
 
     if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Enter email and password")),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Enter email and password")),
+        );
+      }
       return;
     }
 
@@ -39,11 +42,15 @@ final passwordController = TextEditingController();
           email: email,
           role: selectedRole,
         );
-        _navigateToProfileSetup(selectedRole);
+        if (mounted) {
+          _navigateToProfileSetup(selectedRole);
+        }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Signup failed")),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Signup failed")),
+          );
+        }
       }
     } on FirebaseAuthException catch (e) {
       if (e.code == 'email-already-in-use') {
@@ -59,30 +66,40 @@ final passwordController = TextEditingController();
               email: email,
               role: selectedRole,
             );
-            _navigateToProfileSetup(selectedRole);
+            if (mounted) {
+              _navigateToProfileSetup(selectedRole);
+            }
           } else {
             setState(() => isLoading = false);
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("This account already exists and does not support additional roles.")),
-            );
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("This account already exists and does not support additional roles.")),
+              );
+            }
           }
         } else {
           setState(() => isLoading = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Email already in use. Please sign in or use a different password.")),
-          );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Email already in use. Please sign in or use a different password.")),
+            );
+          }
         }
       } else {
         setState(() => isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error: ${e.message}")),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Error: ${e.message}")),
+          );
+        }
       }
     } catch (e) {
       setState(() => isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e")),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: $e")),
+        );
+      }
     }
   }
 
@@ -101,7 +118,9 @@ final passwordController = TextEditingController();
     if (userData == null) {
       setState(() => isLoading = false);
       // New user: must select a role
-      Navigator.pushReplacementNamed(context, "/googleInitialRoleSelection");
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, "/googleInitialRoleSelection");
+      }
       return;
     }
 
@@ -113,21 +132,27 @@ final passwordController = TextEditingController();
       // OR specifically ask if they want to add the Tourist role.
       // For now, let's send them to the selection screen to pick Tourist if they want.
       setState(() => isLoading = false);
-      Navigator.pushReplacementNamed(context, "/googleInitialRoleSelection");
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, "/googleInitialRoleSelection");
+      }
     } else {
       // Regular login flow
       if (existingRoles.length > 1) {
         setState(() => isLoading = false);
-        Navigator.pushReplacementNamed(context, "/postAuthRoleSelection");
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, "/postAuthRoleSelection");
+        }
       } else {
         final role = userData["activeRole"] ?? existingRoles.first;
         final roleCompletion = userData["roleCompletion"] as Map<String, dynamic>? ?? {};
         final isCompleted = roleCompletion[role] ?? false;
 
-        if (isCompleted) {
-          _navigateToHome(role);
-        } else {
-          _navigateToProfileSetup(role);
+        if (mounted) {
+          if (isCompleted) {
+            _navigateToHome(role);
+          } else {
+            _navigateToProfileSetup(role);
+          }
         }
       }
     }
@@ -177,147 +202,127 @@ final passwordController = TextEditingController();
       backgroundColor: Colors.white,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(22),
+          physics: const AlwaysScrollableScrollPhysics(
+            parent: BouncingScrollPhysics(),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
           child: Column(
             children: [
-              const SizedBox(height: 40),
-
+              const SizedBox(height: 24),
               const Text(
                 "GeoTour",
                 style: TextStyle(
-                  fontSize: 38,
-                  fontWeight: FontWeight.bold,
+                  fontSize: 42,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -1.5,
+                  color: Colors.black,
                 ),
               ),
-
-              const SizedBox(height: 8),
-
-              const Text(
+              const SizedBox(height: 12),
+              Text(
                 "AI-powered tourist safety with\nreal-time geo-intelligence",
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey),
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey.shade600,
+                  height: 1.5,
+                  letterSpacing: -0.2,
+                ),
               ),
-
-              const SizedBox(height: 30),
-
+              const SizedBox(height: 32),
               Container(
-                padding: const EdgeInsets.all(18),
+                padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(18),
+                  gradient: const LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.white, Color(0xFFFAFAFA)],
+                  ),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: const Color(0xFFF1F1F1), width: 1.5),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.015),
+                      blurRadius: 24,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
                 ),
                 child: Column(
                   children: [
                     const Text(
                       "Create Account",
-                      style:
-                          TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-                    ),
-                    const SizedBox(height: 20),
-
-                    TextField(
-                      controller: emailController,
-                      decoration: InputDecoration(
-                        labelText: "Email",
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.5,
                       ),
                     ),
-
-                    const SizedBox(height: 15),
-
+                    const SizedBox(height: 32),
+                    TextField(
+                      controller: emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: const InputDecoration(
+                        labelText: "Email",
+                        prefixIcon: Icon(Icons.email_outlined, size: 20),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                     TextField(
                       controller: passwordController,
                       obscureText: true,
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                         labelText: "Password",
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                        prefixIcon: Icon(Icons.lock_outline_rounded, size: 20),
                       ),
                     ),
-
-                    const SizedBox(height: 15),
-
+                    const SizedBox(height: 16),
                     DropdownButtonFormField(
-                      value: selectedRole,
+                      initialValue: selectedRole,
+                      icon: const Icon(Icons.keyboard_arrow_down_rounded),
                       items: const [
-                        DropdownMenuItem(
-                          value: "tourist",
-                          child: Text("Tourist"),
-                        ),
-                        DropdownMenuItem(
-                          value: "police",
-                          child: Text("Police"),
-                        ),
-                        DropdownMenuItem(
-                          value: "hospital",
-                          child: Text("Hospital"),
-                        ),
+                        DropdownMenuItem(value: "tourist", child: Text("Tourist")),
+                        DropdownMenuItem(value: "police", child: Text("Police")),
+                        DropdownMenuItem(value: "hospital", child: Text("Hospital")),
                       ],
                       onChanged: (value) {
                         setState(() {
                           selectedRole = value.toString();
                         });
                       },
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                         labelText: "Select Role",
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                        prefixIcon: Icon(Icons.badge_outlined, size: 20),
                       ),
                     ),
-
-                    const SizedBox(height: 20),
-
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.black,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                        ),
-                        onPressed: isLoading ? null : handleSignUp,
-                        child: isLoading
-                            ? const CircularProgressIndicator(
-                                color: Colors.white)
-                            : const Text(
-                                "Sign Up",
-                                style: TextStyle(
-                                    fontSize: 18, color: Colors.white),
+                    const SizedBox(height: 32),
+                    ElevatedButton(
+                      onPressed: isLoading ? null : handleSignUp,
+                      child: isLoading
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
                               ),
-                      ),
+                            )
+                          : const Text("Sign Up"),
                     ),
-
-                    const SizedBox(height: 15),
-
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: OutlinedButton(
-                        style: OutlinedButton.styleFrom(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                        ),
-                        onPressed: isLoading ? null : handleGoogleSignUp,
-                        child: const Text(
-                          "Continue with Google",
-                          style: TextStyle(fontSize: 16),
-                        ),
-                      ),
+                    const SizedBox(height: 16),
+                    OutlinedButton.icon(
+                      onPressed: isLoading ? null : handleGoogleSignUp,
+                          icon: const GoogleLogoWidget(height: 24),
+                          label: const Text("Continue with Google"),
                     ),
-
-                    const SizedBox(height: 20),
-
+                    const SizedBox(height: 24),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text("Already have an account? "),
+                        Text(
+                          "Already have an account? ",
+                          style: TextStyle(color: Colors.grey.shade600),
+                        ),
                         GestureDetector(
                           onTap: () {
                             Navigator.pushReplacementNamed(context, "/signIn");
@@ -325,8 +330,8 @@ final passwordController = TextEditingController();
                           child: const Text(
                             "Sign In",
                             style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              decoration: TextDecoration.underline,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.black,
                             ),
                           ),
                         )

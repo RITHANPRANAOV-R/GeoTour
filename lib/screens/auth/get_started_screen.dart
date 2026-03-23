@@ -9,45 +9,64 @@ class GetStartedScreen extends StatelessWidget {
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(22),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.white, Color(0xFFFAFAFA)],
+                  ),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: const Color(0xFFF1F1F1),
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.015),
+                      blurRadius: 24,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.map_rounded,
+                  size: 80,
+                  color: Colors.black,
+                ),
+              ),
+              const SizedBox(height: 48),
               const Text(
                 "GeoTour",
                 style: TextStyle(
-                  fontSize: 40,
-                  fontWeight: FontWeight.bold,
+                  fontSize: 42,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -1.5,
+                  color: Colors.black,
                 ),
               ),
-              const SizedBox(height: 10),
-              const Text(
+              const SizedBox(height: 12),
+              Text(
                 "AI-powered tourist safety with\nreal-time geo-intelligence",
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 15,
-                  color: Colors.grey,
+                  fontSize: 16,
+                  color: Colors.grey.shade600,
+                  height: 1.5,
+                  letterSpacing: -0.2,
                 ),
               ),
-              const SizedBox(height: 60),
-              SizedBox(
-                width: double.infinity,
-                height: 55,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  onPressed: () {
-                    Navigator.pushReplacementNamed(context, "/signIn");
-                  },
-                  child: const Text(
-                    "Get Started",
-                    style: TextStyle(fontSize: 18, color: Colors.white),
-                  ),
-                ),
+              const Spacer(flex: 2),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pushReplacementNamed(context, "/signIn");
+                },
+                child: const Text("Get Started"),
               ),
             ],
           ),

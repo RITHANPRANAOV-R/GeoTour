@@ -15,44 +15,155 @@ class _AdminProfileSetupScreenState extends State<AdminProfileSetupScreen> {
   final TextEditingController adminCodeController = TextEditingController();
   bool isLoading = false;
 
+  @override
+  void dispose() {
+    nameController.dispose();
+    adminCodeController.dispose();
+    super.dispose();
+  }
+
   Future<void> saveProfile() async {
-    if (nameController.text.isEmpty || adminCodeController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please fill all fields")));
+    final name = nameController.text.trim();
+    final code = adminCodeController.text.trim();
+
+    if (name.isEmpty || code.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please fill all fields"), backgroundColor: Colors.redAccent),
+      );
       return;
     }
 
     setState(() => isLoading = true);
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      await FirebaseFirestore.instance.collection("admins").doc(user.uid).set({
-        "name": nameController.text.trim(),
-        "adminCode": adminCodeController.text.trim(),
-        "profileCompleted": true,
-      });
-      await UserService().updateProfileCompleted(user.uid, true, "admin");
-      Navigator.pushReplacementNamed(context, "/adminHome");
+      try {
+        await FirebaseFirestore.instance.collection("admins").doc(user.uid).set({
+          "uid": user.uid,
+          "name": name,
+          "adminCode": code,
+          "profileCompleted": true,
+          "updatedAt": DateTime.now().toIso8601String(),
+        });
+        await UserService().updateProfileCompleted(user.uid, true, "admin");
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, "/adminHome");
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Error: $e"), backgroundColor: Colors.redAccent),
+          );
+        }
+      }
     }
-    setState(() => isLoading = false);
+    if (mounted) setState(() => isLoading = false);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Admin Profile Setup")),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            TextField(controller: nameController, decoration: const InputDecoration(labelText: "Full Name")),
-            TextField(controller: adminCodeController, decoration: const InputDecoration(labelText: "Admin Code")),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: isLoading ? null : saveProfile,
-              child: isLoading ? const CircularProgressIndicator() : const Text("Complete Setup"),
-            ),
-          ],
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "GeoTour",
+                style: TextStyle(
+                  fontSize: 36,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -1.5,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                "Administration Unit Setup",
+                style: TextStyle(
+                  fontSize: 18,
+                  color: Colors.grey.shade600,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 48),
+              const Text(
+                "Complete your profile",
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              const SizedBox(height: 32),
+              _buildField("Full Name", nameController, Icons.person_outline_rounded),
+              const SizedBox(height: 16),
+              _buildField("Admin Authorization Code", adminCodeController, Icons.vpn_key_outlined),
+              const SizedBox(height: 48),
+              SizedBox(
+                width: double.infinity,
+                height: 58,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    elevation: 0,
+                  ),
+                  onPressed: isLoading ? null : saveProfile,
+                  child: isLoading
+                      ? const SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                        )
+                      : const Text(
+                          "Initialize Console",
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _buildField(String label, TextEditingController controller, IconData icon) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Colors.black87),
+        ),
+        const SizedBox(height: 10),
+        TextField(
+          controller: controller,
+          decoration: InputDecoration(
+            prefixIcon: Icon(icon, size: 20, color: Colors.black54),
+            filled: true,
+            fillColor: Colors.grey.shade50,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey.shade200),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Colors.black, width: 1.5),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

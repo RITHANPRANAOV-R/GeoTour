@@ -37,22 +37,39 @@ class _GeofenceManagementScreenState extends State<GeofenceManagementScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Add New Geo-Fence Zone"),
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        title: const Text(
+          "Add Geo-Fence Zone",
+          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20, letterSpacing: -0.5),
+        ),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(controller: nameController, decoration: const InputDecoration(labelText: "Zone Name")),
-              TextField(controller: latController, decoration: const InputDecoration(labelText: "Latitude"), keyboardType: TextInputType.number),
-              TextField(controller: lonController, decoration: const InputDecoration(labelText: "Longitude"), keyboardType: TextInputType.number),
-              TextField(controller: radiusController, decoration: const InputDecoration(labelText: "Radius (meters)"), keyboardType: TextInputType.number),
+              _buildDialogField(nameController, "Zone Name", Icons.label_outline_rounded),
+              _buildDialogField(latController, "Latitude", Icons.location_on_outlined, isNumber: true),
+              _buildDialogField(lonController, "Longitude", Icons.explore_outlined, isNumber: true),
+              _buildDialogField(radiusController, "Radius (meters)", Icons.radar_rounded, isNumber: true),
             ],
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+          ),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF007AFF),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: const StadiumBorder(),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
             onPressed: () async {
+              final nav = Navigator.of(context);
               Map<String, dynamic> newZone = {
                 "name": nameController.text,
                 "latitude": double.tryParse(latController.text) ?? 0.0,
@@ -61,13 +78,32 @@ class _GeofenceManagementScreenState extends State<GeofenceManagementScreen> {
               };
               bool success = await _apiService.addZone(newZone);
               if (success && mounted) {
-                Navigator.pop(context);
+                nav.pop();
                 _fetchZones();
               }
             },
-            child: const Text("Add"),
+            child: const Text("Add Zone", style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildDialogField(TextEditingController controller, String label, IconData icon, {bool isNumber = false}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: TextField(
+        controller: controller,
+        keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: Icon(icon, size: 20),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade100)),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF007AFF))),
+          filled: true,
+          fillColor: const Color(0xFFF9F9F9),
+        ),
       ),
     );
   }
@@ -75,33 +111,82 @@ class _GeofenceManagementScreenState extends State<GeofenceManagementScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Geo-Fence Management")),
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        shape: Border(bottom: BorderSide(color: Colors.grey.shade200, width: 1)),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          "Geo-Fence Management",
+          style: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.w800,
+            fontSize: 18,
+            letterSpacing: -0.5,
+          ),
+        ),
+        centerTitle: true,
+      ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: Colors.black))
           : Column(
               children: [
                 _buildMapPlaceholder(),
                 Expanded(
                   child: _zones.isEmpty
                       ? const Center(child: Text("No zones found."))
-                      : ListView.builder(
-                          padding: const EdgeInsets.all(16),
+                      : ListView.separated(
+                          physics: const BouncingScrollPhysics(),
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
                           itemCount: _zones.length,
+                          separatorBuilder: (context, index) => const SizedBox(height: 12),
                           itemBuilder: (context, index) {
                             final zone = _zones[index];
-                            return Card(
-                              margin: const EdgeInsets.only(bottom: 12),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              child: ListTile(
-                                leading: CircleAvatar(
-                                  backgroundColor: Colors.blue.shade100,
-                                  child: const Icon(Icons.location_on, color: Colors.blue),
+                            return Container(
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [Colors.white, Color(0xFFFAFAFA)],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
                                 ),
-                                title: Text(zone['name'] ?? 'Unnamed Zone', style: const TextStyle(fontWeight: FontWeight.bold)),
-                                subtitle: Text("Lat: ${zone['latitude']}, Lon: ${zone['longitude']}\nRadius: ${zone['radius']}m"),
-                                isThreeLine: true,
+                                borderRadius: BorderRadius.circular(24),
+                                border: Border.all(color: const Color(0xFFF1F1F1)),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.015),
+                                    blurRadius: 24,
+                                    offset: const Offset(0, 10),
+                                  ),
+                                ],
+                              ),
+                              child: ListTile(
+                                contentPadding: const EdgeInsets.all(16),
+                                leading: Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  child: const Icon(Icons.location_on_rounded, color: Colors.blue),
+                                ),
+                                title: Text(
+                                  zone['name'] ?? 'Unnamed Zone',
+                                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                                ),
+                                subtitle: Padding(
+                                  padding: const EdgeInsets.only(top: 8),
+                                  child: Text(
+                                    "Lat: ${zone['latitude']}, Lon: ${zone['longitude']}\nRadius: ${zone['radius']}m",
+                                    style: TextStyle(color: Colors.grey.shade600, height: 1.4),
+                                  ),
+                                ),
                                 trailing: IconButton(
-                                  icon: const Icon(Icons.delete, color: Colors.redAccent),
+                                  icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
                                   onPressed: () async {
                                     bool success = await _apiService.deleteZone(zone['id'].toString());
                                     if (success && mounted) {
@@ -119,9 +204,11 @@ class _GeofenceManagementScreenState extends State<GeofenceManagementScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showAddZoneDialog,
         icon: const Icon(Icons.add_location_alt_rounded),
-        label: const Text("Add Zone"),
-        backgroundColor: Colors.blue.shade800,
+        label: const Text("Add Zone", style: TextStyle(fontWeight: FontWeight.w800)),
+        backgroundColor: Colors.black,
         foregroundColor: Colors.white,
+        elevation: 8,
+        shape: const StadiumBorder(),
       ),
     );
   }
@@ -132,9 +219,9 @@ class _GeofenceManagementScreenState extends State<GeofenceManagementScreen> {
       width: double.infinity,
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.blue.withOpacity(0.03),
+        color: Colors.blue.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.blue.withOpacity(0.08)),
+        border: Border.all(color: Colors.blue.withValues(alpha: 0.08)),
       ),
       child: Center(
         child: Column(

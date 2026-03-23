@@ -38,4 +38,10 @@ class UserService {
       "profileCompleted": value,
     }, SetOptions(merge: true));
   }
+
+  Future<void> switchRole(String uid, String newRole) async {
+    await _db.collection("users").doc(uid).update({
+      "activeRole": newRole,
+    });
+  }
 }

@@ -1,8 +1,11 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  User? get currentUser => _auth.currentUser;
 
   Future<User?> signUpWithEmailPassword(String email, String password) async {
     try {
@@ -61,5 +64,10 @@ class AuthService {
   Future<void> signOut() async {
     await GoogleSignIn().signOut();
     await _auth.signOut();
+  }
+
+  Stream<DocumentSnapshot> getUserProfileStream(String uid) {
+    if (uid.isEmpty) return const Stream.empty();
+    return FirebaseFirestore.instance.collection('users').doc(uid).snapshots();
   }
 }

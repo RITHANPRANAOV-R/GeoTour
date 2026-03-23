@@ -5,6 +5,7 @@ import '../../services/auth_service.dart';
 // Navigation is handled by named routes in main.dart, so logic in screens remains valid as long as route names didn't change.
 // However, I will check if any manual imports need updating.
 import '../../services/user_service.dart';
+import '../../widgets/google_logo.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -43,9 +44,11 @@ class _SignInScreenState extends State<SignInScreen> {
 
     if (user == null) {
       setState(() => isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Invalid login")),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Invalid login")),
+        );
+      }
       return;
     }
 
@@ -53,7 +56,9 @@ class _SignInScreenState extends State<SignInScreen> {
 
     if (userData == null) {
       setState(() => isLoading = false);
-      Navigator.pushReplacementNamed(context, "/signUp");
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, "/signUp");
+      }
       return;
     }
 
@@ -61,12 +66,16 @@ class _SignInScreenState extends State<SignInScreen> {
 
     if (roles.length > 1) {
       setState(() => isLoading = false);
-      Navigator.pushReplacementNamed(context, "/postAuthRoleSelection");
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, "/postAuthRoleSelection");
+      }
     } else {
       final role = userData["activeRole"] ?? roles.first;
       final roleCompletion = userData["roleCompletion"] as Map<String, dynamic>? ?? {};
       final isCompleted = roleCompletion[role] ?? false;
-      _navigateBasedOnRoleAndCompletion(role, isCompleted);
+      if (mounted) {
+        _navigateBasedOnRoleAndCompletion(role, isCompleted);
+      }
     }
   }
 
@@ -77,9 +86,11 @@ class _SignInScreenState extends State<SignInScreen> {
 
     if (user == null) {
       setState(() => isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Google login cancelled")),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Google login cancelled")),
+        );
+      }
       return;
     }
 
@@ -87,7 +98,9 @@ class _SignInScreenState extends State<SignInScreen> {
 
     if (userData == null) {
       setState(() => isLoading = false);
-      Navigator.pushReplacementNamed(context, "/googleInitialRoleSelection");
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, "/googleInitialRoleSelection");
+      }
       return;
     }
 
@@ -95,12 +108,16 @@ class _SignInScreenState extends State<SignInScreen> {
 
     if (roles.length > 1) {
       setState(() => isLoading = false);
-      Navigator.pushReplacementNamed(context, "/postAuthRoleSelection");
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, "/postAuthRoleSelection");
+      }
     } else {
       final role = userData["activeRole"] ?? roles.first;
       final roleCompletion = userData["roleCompletion"] as Map<String, dynamic>? ?? {};
       final isCompleted = roleCompletion[role] ?? false;
-      _navigateBasedOnRoleAndCompletion(role, isCompleted);
+      if (mounted) {
+        _navigateBasedOnRoleAndCompletion(role, isCompleted);
+      }
     }
   }
 
@@ -147,60 +164,81 @@ class _SignInScreenState extends State<SignInScreen> {
       backgroundColor: Colors.white,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(22),
+          physics: const AlwaysScrollableScrollPhysics(
+            parent: BouncingScrollPhysics(),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
           child: Column(
             children: [
-              const SizedBox(height: 40),
+              const SizedBox(height: 48),
               const Text(
                 "GeoTour",
                 style: TextStyle(
-                  fontSize: 38,
-                  fontWeight: FontWeight.bold,
+                  fontSize: 42,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -1.5,
+                  color: Colors.black,
                 ),
               ),
-              const SizedBox(height: 8),
-              const Text(
+              const SizedBox(height: 12),
+              Text(
                 "AI-powered tourist safety with\nreal-time geo-intelligence",
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey),
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey.shade600,
+                  height: 1.5,
+                  letterSpacing: -0.2,
+                ),
               ),
-              const SizedBox(height: 30),
+              const SizedBox(height: 48),
               Container(
-                padding: const EdgeInsets.all(18),
+                padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(18),
+                  gradient: const LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.white, Color(0xFFFAFAFA)],
+                  ),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: const Color(0xFFF1F1F1), width: 1.5),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.015),
+                      blurRadius: 24,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
                 ),
                 child: Column(
                   children: [
                     const Text(
                       "Sign In",
-                      style:
-                          TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-                    ),
-                    const SizedBox(height: 20),
-                    TextField(
-                      controller: emailController,
-                      decoration: InputDecoration(
-                        labelText: "Email",
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.5,
                       ),
                     ),
-                    const SizedBox(height: 15),
+                    const SizedBox(height: 32),
+                    TextField(
+                      controller: emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: const InputDecoration(
+                        labelText: "Email",
+                        prefixIcon: Icon(Icons.email_outlined, size: 20),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                     TextField(
                       controller: passwordController,
                       obscureText: true,
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                         labelText: "Password",
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                        prefixIcon: Icon(Icons.lock_outline_rounded, size: 20),
                       ),
                     ),
-                    const SizedBox(height: 15),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 8),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -210,10 +248,7 @@ class _SignInScreenState extends State<SignInScreen> {
                           },
                           child: const Text(
                             "Login as Admin",
-                            style: TextStyle(
-                              color: Colors.black54,
-                              fontWeight: FontWeight.w600,
-                            ),
+                            style: TextStyle(color: Colors.black54),
                           ),
                         ),
                         TextButton(
@@ -222,53 +257,34 @@ class _SignInScreenState extends State<SignInScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 10),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.black,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                        ),
-                        onPressed: isLoading ? null : handleEmailLogin,
-                        child: isLoading
-                            ? const CircularProgressIndicator(
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      onPressed: isLoading ? null : handleEmailLogin,
+                      child: isLoading
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
                                 color: Colors.white,
-                              )
-                            : const Text(
-                                "Sign In",
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  color: Colors.white,
-                                ),
+                                strokeWidth: 2,
                               ),
-                      ),
+                            )
+                          : const Text("Sign In"),
                     ),
-                    const SizedBox(height: 15),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: OutlinedButton(
-                        style: OutlinedButton.styleFrom(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                        ),
-                        onPressed: isLoading ? null : handleGoogleLogin,
-                        child: const Text(
-                          "Sign in with Google",
-                          style: TextStyle(fontSize: 16),
-                        ),
-                      ),
+                    const SizedBox(height: 16),
+                    OutlinedButton.icon(
+                      onPressed: isLoading ? null : handleGoogleLogin,
+                      icon: const GoogleLogoWidget(height: 24),
+                      label: const Text("Continue with Google"),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 24),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text("Not yet registered? "),
+                        Text(
+                          "Not yet registered? ",
+                          style: TextStyle(color: Colors.grey.shade600),
+                        ),
                         GestureDetector(
                           onTap: () {
                             Navigator.pushNamed(context, "/signUp");
@@ -276,8 +292,8 @@ class _SignInScreenState extends State<SignInScreen> {
                           child: const Text(
                             "Create Account",
                             style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              decoration: TextDecoration.underline,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.black,
                             ),
                           ),
                         )
