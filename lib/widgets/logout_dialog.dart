@@ -110,7 +110,7 @@ class LogoutDialog {
     if (confirm == true) {
       await AuthService().signOut();
       if (context.mounted) {
-        Navigator.of(context).pushNamedAndRemoveUntil('/signIn', (route) => false);
+        Navigator.of(context).pushNamedAndRemoveUntil('/getStarted', (route) => false);
       }
     }
   }

@@ -17,6 +17,7 @@ final emailController = TextEditingController();
 final passwordController = TextEditingController();
 
   bool isLoading = false;
+  bool _obscurePassword = true;
 
   Future<void> handleSignUp() async {
     final email = emailController.text.trim();
@@ -270,10 +271,22 @@ final passwordController = TextEditingController();
                     const SizedBox(height: 16),
                     TextField(
                       controller: passwordController,
-                      obscureText: true,
-                      decoration: const InputDecoration(
+                      obscureText: _obscurePassword,
+                      decoration: InputDecoration(
                         labelText: "Password",
-                        prefixIcon: Icon(Icons.lock_outline_rounded, size: 20),
+                        prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                            size: 20,
+                            color: Colors.grey.shade600,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _obscurePassword = !_obscurePassword;
+                            });
+                          },
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),

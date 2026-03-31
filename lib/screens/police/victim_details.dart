@@ -11,6 +11,8 @@ import 'dart:convert';
 import '../../services/geo_service.dart';
 import '../tourist/police_chat_screen.dart';
 import '../common/call_screen.dart';
+import '../common/report_viewer_screen.dart';
+import '../../services/file_service.dart';
 
 class VictimDetailsScreen extends StatefulWidget {
   final Map<String, dynamic> victimData;
@@ -382,6 +384,8 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
                       ),
                       const SizedBox(height: 16),
                       _buildDetailCard(data),
+                      const SizedBox(height: 24),
+                      _buildMedicalSection(data['userId'] ?? data['victimId']),
                       const SizedBox(height: 100),
                     ],
                   ),
@@ -839,6 +843,132 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildMedicalSection(String? victimId) {
+    if (victimId == null) return const SizedBox.shrink();
+
+    return FutureBuilder<DocumentSnapshot>(
+      future: FirebaseFirestore.instance.collection('tourists').doc(victimId).get(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: Padding(
+            padding: EdgeInsets.all(20.0),
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ));
+        }
+
+        final touristData = snapshot.data?.data() as Map<String, dynamic>?;
+        if (touristData == null || touristData['medicalInfo'] == null) {
+          return const SizedBox.shrink();
+        }
+
+        final medicalInfo = touristData['medicalInfo'] as Map<String, dynamic>;
+        final reportUrl = medicalInfo['healthReportFile'] ?? 'N/A';
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "Medical History",
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Colors.white, Color(0xFFFFF9F9)], // Slight medical tint
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: Colors.red.withOpacity(0.05)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.015),
+                    blurRadius: 24,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  children: [
+                    _buildInfoRow(
+                      Icons.medication_outlined,
+                      "Medications",
+                      medicalInfo['medications'] ?? "N/A",
+                    ),
+                    const Divider(height: 32, thickness: 0.5),
+                    _buildInfoRow(
+                      Icons.healing_outlined,
+                      "Allergies",
+                      medicalInfo['allergies'] ?? "N/A",
+                    ),
+                    if (reportUrl != 'N/A') ...[
+                      const Divider(height: 32, thickness: 0.5),
+                      Row(
+                        children: [
+                          Icon(Icons.description_outlined, color: Colors.grey, size: 22),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  "Medical Report",
+                                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                                ),
+                                const SizedBox(height: 4),
+                                const Text(
+                                  "Attached Document",
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ReportViewerScreen(
+                                    url: reportUrl,
+                                    title: "Victim Report",
+                                  ),
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.visibility_outlined, color: Colors.blue),
+                          ),
+                          const SizedBox(width: 8),
+                          IconButton(
+                            onPressed: () {
+                              final isPdf = reportUrl.toLowerCase().contains('.pdf') || reportUrl.contains('/raw/upload/');
+                              final fileName = "Medical_Report_${DateTime.now().millisecondsSinceEpoch}.${isPdf ? 'pdf' : 'jpg'}";
+                              FileService.downloadFile(
+                                context: context,
+                                url: reportUrl,
+                                fileName: fileName,
+                              );
+                            },
+                            icon: const Icon(Icons.download_rounded, color: Colors.blue),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 

@@ -1,336 +1,308 @@
-import 'dart:ui';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/auth_service.dart';
-import '../../widgets/app_drawer.dart';
-import '../../widgets/logout_dialog.dart';
+import '../../services/hospital_service.dart';
+import 'patient_details.dart';
 
-class HospitalHomeScreen extends StatelessWidget {
-  const HospitalHomeScreen({super.key});
+class HospitalHomeContent extends StatelessWidget {
+  const HospitalHomeContent({super.key});
 
   @override
   Widget build(BuildContext context) {
     final user = AuthService().currentUser;
+    final hospitalService = HospitalService();
 
-    return Scaffold(
-      extendBody: true,
-      backgroundColor: const Color(0xFFF8F9FA),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        shape: const Border(
-          bottom: BorderSide(color: Color(0xFFEEEEEE), width: 1),
-        ),
-        leading: Builder(
-          builder: (context) => IconButton(
-            icon: const Icon(Icons.menu_rounded, color: Colors.black, size: 28),
-            onPressed: () => Scaffold.of(context).openDrawer(),
-          ),
-        ),
-        title: const Text(
-          "GeoTour",
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.w900,
-            fontSize: 28,
-            letterSpacing: -1.0,
-          ),
-        ),
-        centerTitle: true,
-      ),
-      drawer: const AppDrawer(),
-      body: RepaintBoundary(
-        child: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('hospitals')
-            .doc(user?.uid)
-            .collection('alerts')
-            .orderBy('timestamp', descending: true)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 100),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: StreamBuilder<DocumentSnapshot>(
+                stream: user != null ? FirebaseFirestore.instance.collection('hospitals').doc(user.uid).snapshots() : null,
+                builder: (context, snapshot) {
+                  String name = "Hospital";
+                  bool isAvailable = false;
+                  if (snapshot.hasData && snapshot.data!.exists) {
+                    final data = snapshot.data!.data() as Map<String, dynamic>;
+                    name = data['hospitalName'] ?? "Hospital";
+                    isAvailable = data['isAvailable'] ?? false;
+                  }
 
-          final alerts = snapshot.data?.docs ?? [];
-
-          return CustomScrollView(
-            physics: const BouncingScrollPhysics(),
-            slivers: [
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
+                  return Column(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: Colors.red.withValues(alpha: 0.05),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.local_hospital_rounded,
-                          size: 60,
-                          color: Colors.red.shade900,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        "Medical Response Center",
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: -0.5,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        alerts.isEmpty
-                            ? "Standing by for emergency requests..."
-                            : "Active emergency alerts below",
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontWeight: FontWeight.w500,
-                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              "Welcome, $name",
+                              style: const TextStyle(
+                                fontSize: 26,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: -1.0,
+                              ),
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: isAvailable ? Colors.green.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  isAvailable ? "Active" : "Offline",
+                                  style: TextStyle(
+                                    color: isAvailable ? Colors.green : Colors.red,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                CupertinoSwitch(
+                                  value: isAvailable,
+                                  onChanged: (value) async {
+                                    if (user != null) {
+                                      await hospitalService.updateHospitalStatus(user.uid, value);
+                                    }
+                                  },
+                                  activeColor: Colors.green,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ],
-                  ),
+                  );
+                },
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              child: Text(
+                "Medical Risks",
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.grey.shade500,
+                  letterSpacing: 0.5,
                 ),
               ),
-              if (alerts.isNotEmpty)
-                SliverList(
-                  delegate: SliverChildBuilderDelegate((context, index) {
-                    final data = alerts[index].data() as Map<String, dynamic>;
-                    return Container(
-                      margin: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
+            ),
+            const SizedBox(height: 12),
+            StreamBuilder<QuerySnapshot>(
+              stream: user != null ? hospitalService.getHospitalAlertsStream(user.uid) : null,
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Colors.white, Color(0xFFFAFAFA)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
+                        color: Colors.red.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.red.withOpacity(0.1)),
+                      ),
+                      child: Column(
+                        children: [
+                          const Icon(Icons.error_outline_rounded, color: Colors.red, size: 32),
+                          const SizedBox(height: 12),
+                          Text(
+                            "Failed to load alerts",
+                            style: TextStyle(color: Colors.red.shade700, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            snapshot.error.toString(),
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: Colors.red.shade400, fontSize: 11),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Padding(
+                    padding: EdgeInsets.all(40.0),
+                    child: Center(child: CircularProgressIndicator(color: Colors.redAccent)),
+                  );
+                }
+
+                final alerts = snapshot.data?.docs ?? [];
+                
+                // Manual Sort (latest first) to avoid Firestore index requirement
+                final sortedAlerts = alerts.toList()..sort((a, b) {
+                  final aTime = (a.data() as Map<String, dynamic>)['timestamp'] as Timestamp?;
+                  final bTime = (b.data() as Map<String, dynamic>)['timestamp'] as Timestamp?;
+                  if (aTime == null) return 1;
+                  if (bTime == null) return -1;
+                  return bTime.compareTo(aTime);
+                });
+
+                if (sortedAlerts.isEmpty) {
+                  return Padding(
+                    padding: const EdgeInsets.all(40.0),
+                    child: Center(
+                      child: Column(
+                        children: [
+                          Icon(Icons.local_hospital_rounded, size: 48, color: Colors.grey.shade300),
+                          const SizedBox(height: 16),
+                          Text(
+                            "No medical risks reported.",
+                            style: TextStyle(color: Colors.grey.shade500, fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+
+                return Column(
+                  children: sortedAlerts.map((alertDoc) {
+                    final data = alertDoc.data() as Map<String, dynamic>;
+                    
+                    String timeText = "Just now";
+                    if (data['timestamp'] != null) {
+                      final timestamp = data['timestamp'] as Timestamp;
+                      final diff = DateTime.now().difference(timestamp.toDate());
+                      if (diff.inMinutes < 60) {
+                        timeText = "Triggered ${diff.inMinutes}m ago";
+                      } else {
+                        timeText = "Triggered ${diff.inHours}h ago";
+                      }
+                    }
+
+                    return Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(color: const Color(0xFFF1F1F1)),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.015),
-                            blurRadius: 24,
-                            offset: const Offset(0, 10),
+                            color: Colors.black.withValues(alpha: 0.02),
+                            blurRadius: 20,
+                            offset: const Offset(0, 4),
                           ),
                         ],
                       ),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.all(16),
-                        leading: Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: Colors.red.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(
-                            Icons.warning_rounded,
-                            color: Colors.red,
-                          ),
-                        ),
-                        title: Text(
-                          "SOS: ${data['victimName'] ?? 'Unknown'}",
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w800,
-                            fontSize: 16,
-                          ),
-                        ),
-                        subtitle: Padding(
-                          padding: const EdgeInsets.only(top: 4),
-                          child: Text(
-                            "Medical Info: ${data['medicalInfo'] ?? 'N/A'}",
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: Colors.grey.shade600,
-                              fontSize: 13,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => PatientDetailsScreen(
+                                    alertData: {...data, 'id': alertDoc.id},
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Stack(
+                              children: [
+                                Positioned(
+                                  left: 0,
+                                  top: 0,
+                                  bottom: 0,
+                                  child: Container(
+                                    width: 6,
+                                    color: _getRiskColor(data['riskLevel']),
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Row(
+                                    children: [
+                                      const SizedBox(width: 8),
+                                      CircleAvatar(
+                                        radius: 24,
+                                        backgroundColor: Colors.grey.shade100,
+                                        child: Icon(Icons.person_rounded, color: Colors.grey.shade400),
+                                      ),
+                                      const SizedBox(width: 16),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              data['victimName'] ?? 'Unknown',
+                                              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 17, letterSpacing: -0.5),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Row(
+                                              children: [
+                                                Icon(Icons.access_time_rounded, size: 12, color: Colors.grey.shade400),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  timeText,
+                                                  style: TextStyle(color: Colors.grey.shade500, fontSize: 12, fontWeight: FontWeight.w500),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.end,
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                            decoration: BoxDecoration(
+                                              color: _getRiskColor(data['riskLevel']).withValues(alpha: 0.1),
+                                              borderRadius: BorderRadius.circular(10),
+                                            ),
+                                            child: Text(
+                                              data['riskLevel']?.toUpperCase() ?? 'HIGH',
+                                              style: TextStyle(
+                                                color: _getRiskColor(data['riskLevel']),
+                                                fontWeight: FontWeight.w900,
+                                                fontSize: 10,
+                                                letterSpacing: 0.5,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey.shade300),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
-                        trailing: const Icon(
-                          Icons.chevron_right_rounded,
-                          color: Colors.grey,
-                        ),
-                        onTap: () => _showAlertDialog(context, data),
                       ),
                     );
-                  }, childCount: alerts.length),
-                ),
-            ],
-          );
-        },
-      ),
-    ),
-    bottomNavigationBar: Container(
-        padding: const EdgeInsets.fromLTRB(24, 0, 24, 30),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(32),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-            child: Container(
-              height: 64,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(32),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.5)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () {
-                        // Current tab is home
-                      },
-                      behavior: HitTestBehavior.opaque,
-                      child: Container(
-                        margin: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(26),
-                        ),
-                        child: const Center(
-                          child: Icon(
-                            Icons.home_rounded,
-                            color: Colors.black,
-                            size: 26,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => LogoutDialog.show(context),
-                      behavior: HitTestBehavior.opaque,
-                      child: Container(
-                        margin: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: Colors.transparent,
-                          borderRadius: BorderRadius.circular(26),
-                        ),
-                        child: const Center(
-                          child: Icon(
-                            Icons.logout_rounded,
-                            color: Colors.grey,
-                            size: 26,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showAlertDialog(BuildContext context, Map<String, dynamic> data) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text(
-          "Emergency SOS Details",
-          style: TextStyle(fontWeight: FontWeight.w900),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildDialogRow(
-              Icons.person_outline,
-              "Victim",
-              data['victimName'] ?? 'Unknown',
-            ),
-            const SizedBox(height: 12),
-            _buildDialogRow(
-              Icons.medical_information_outlined,
-              "Medical Info",
-              data['medicalInfo'] ?? 'N/A',
-            ),
-            const SizedBox(height: 12),
-            _buildDialogRow(
-              Icons.location_on_outlined,
-              "Location",
-              "${data['lat']}, ${data['lng']}",
+                  }).toList(),
+                );
+              },
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              "Dismiss",
-              style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
-            ),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.shade900,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            ),
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              "Dispatch Ambulance",
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
       ),
     );
   }
 
-  Widget _buildDialogRow(IconData icon, String label, String value) {
-    return Row(
-      children: [
-        Icon(icon, size: 20, color: Colors.red.shade900),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: const TextStyle(
-                  color: Colors.grey,
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                value,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
+  Color _getRiskColor(String? level) {
+    switch (level?.toLowerCase()) {
+      case 'extreme': return Colors.red;
+      case 'high': return Colors.orange;
+      case 'medium': return Colors.blue;
+      default: return Colors.green;
+    }
   }
 }

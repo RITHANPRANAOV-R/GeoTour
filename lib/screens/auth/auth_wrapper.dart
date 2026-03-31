@@ -6,7 +6,7 @@ import 'get_started_screen.dart';
 import 'splash_screen.dart';
 import '../tourist/dashboard_screen.dart';
 import '../police/police_dashboard.dart';
-import '../hospital/hospital_home.dart';
+import '../hospital/hospital_dashboard.dart';
 import '../admin/admin_home.dart';
 
 import '../tourist/tourist_profile_setup.dart';
@@ -59,7 +59,7 @@ class AuthWrapper extends StatelessWidget {
                   return const PoliceDashboard();
                 case "medical":
                 case "hospital":
-                  return const HospitalHomeScreen();
+                  return const HospitalDashboard();
                 case "admin":
                   return const AdminHomeScreen();
                 default:

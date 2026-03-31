@@ -369,17 +369,30 @@ class _HomePageState extends State<HomePage> {
 
                 /// WELCOME
                 StreamBuilder<DocumentSnapshot>(
-                  stream: AuthService().getUserProfileStream(
-                    AuthService().currentUser?.uid ?? "",
-                  ),
+                  stream: FirebaseFirestore.instance
+                      .collection('tourists')
+                      .doc(AuthService().currentUser?.uid ?? "")
+                      .snapshots(),
                   builder: (context, snapshot) {
-                    String name = "User";
+                    if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text("Welcome back,", style: TextStyle(fontSize: 14, color: Colors.grey.shade600, fontWeight: FontWeight.w500)),
+                          const SizedBox(height: 4),
+                          Container(width: 80, height: 24, decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(4))),
+                        ],
+                      );
+                    }
+
+                    String name = "";
                     if (snapshot.hasData && snapshot.data!.exists) {
-                      final data =
-                          snapshot.data!.data() as Map<String, dynamic>;
-                      name = data['name'] ?? data['displayName'] ?? "User";
-                    } else if (AuthService().currentUser?.displayName != null) {
-                      name = AuthService().currentUser!.displayName!;
+                      final data = snapshot.data!.data() as Map<String, dynamic>;
+                      name = data['username'] ?? data['name'] ?? "";
+                    }
+                    
+                    if (name.isEmpty) {
+                      name = (AuthService().currentUser?.displayName ?? "Tourist").split(' ').first;
                     }
 
                     return Row(

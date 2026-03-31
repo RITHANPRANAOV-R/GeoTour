@@ -14,7 +14,7 @@ import 'screens/admin/admin_profile_setup.dart';
 import 'screens/police/police_dashboard.dart';
 import 'screens/tourist/dashboard_screen.dart';
 import 'screens/tourist/medical_info_setup_screen.dart';
-import 'screens/hospital/hospital_home.dart';
+import 'screens/hospital/hospital_dashboard.dart';
 import 'screens/admin/admin_home.dart';
 import 'screens/police/police_dashboard_choice.dart';
 import 'screens/auth/admin_login_screen.dart';
@@ -132,7 +132,7 @@ class MyApp extends StatelessWidget {
         "/hospitalProfileSetup": (context) => const HospitalProfileSetupScreen(),
         "/adminProfileSetup": (context) => const AdminProfileSetupScreen(),
         "/policeHome": (context) => const PoliceDashboard(),
-        "/hospitalHome": (context) => const HospitalHomeScreen(),
+        "/hospitalHome": (context) => const HospitalDashboard(),
         "/adminHome": (context) => const AdminHomeScreen(),
         "/postAuthRoleSelection": (context) => const PostAuthRoleSelectionScreen(),
         "/googleInitialRoleSelection": (context) => const GoogleInitialRoleSelectionScreen(),

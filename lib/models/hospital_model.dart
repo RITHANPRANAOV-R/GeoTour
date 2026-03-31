@@ -9,6 +9,7 @@ class HospitalModel {
   final String address;
   final double latitude;
   final double longitude;
+  final bool isAvailable;
   final double distance; // Calculated distance from current user
 
   HospitalModel({
@@ -20,6 +21,7 @@ class HospitalModel {
     required this.address,
     required this.latitude,
     required this.longitude,
+    this.isAvailable = false,
     this.distance = 0.0,
   });
 
@@ -36,6 +38,7 @@ class HospitalModel {
       address: data['fullAddress'] ?? '',
       latitude: data['latitude'] ?? 0.0,
       longitude: data['longitude'] ?? 0.0,
+      isAvailable: data['isAvailable'] ?? false,
     );
   }
 }

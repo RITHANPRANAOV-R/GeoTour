@@ -285,6 +285,7 @@ class PoliceService {
     required double lng,
     required String threat,
     required String riskLevel,
+    String? medicalInfo,
     String? officerId,
   }) async {
     final alertData = {
@@ -292,6 +293,7 @@ class PoliceService {
       'victimName': victimName,
       'threat': threat,
       'riskLevel': riskLevel,
+      'medicalInfo': medicalInfo,
       'location': GeoPoint(lat, lng),
       'status': 'pending',
       'timestamp': FieldValue.serverTimestamp(),

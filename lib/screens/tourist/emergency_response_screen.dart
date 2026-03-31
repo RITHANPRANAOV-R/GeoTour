@@ -13,6 +13,7 @@ import '../../services/police_service.dart';
 import '../../models/officer_model.dart';
 import 'police_chat_screen.dart';
 import '../common/call_screen.dart';
+import '../../widgets/premium_toast.dart';
 
 class EmergencyResponseScreen extends StatefulWidget {
   const EmergencyResponseScreen({super.key});
@@ -116,37 +117,57 @@ class _EmergencyResponseScreenState extends State<EmergencyResponseScreen>
 
     final pos = GeoService().currentPosition;
     if (pos == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Waiting for your location...")),
+      PremiumToast.show(
+        context,
+        title: "Location Unavailable",
+        message: "Waiting for your GPS coordinates...",
+        type: ToastType.warning,
       );
       return;
     }
 
-    // Get medical info preview
-    final profile = await FirebaseFirestore.instance
-        .collection('users')
+    // Get actual name and medical info from the 'tourists' collection
+    final touristDoc = await FirebaseFirestore.instance
+        .collection('tourists')
         .doc(user.uid)
         .get();
-    final medInfo = profile.data();
-    final m = medInfo?['medicalInfo'] as Map<String, dynamic>?;
+    
+    final touristData = touristDoc.data();
+    final m = touristData?['medicalInfo'] as Map<String, dynamic>?;
+    
+    final victimName = touristData?['username'] ?? user.displayName ?? "Tourist";
     final medicalSummary =
-        "Blood: ${m?['bloodGroup'] ?? 'N/A'}, Meds: ${m?['medications'] ?? 'None'}";
+        "Blood: ${m?['bloodGroup'] ?? 'N/A'}, Meds: ${m?['medications'] ?? 'None'}, Allergies: ${m?['allergies'] ?? 'None'}";
 
     try {
       // Find nearest hospital from the first document in the pool for now
       // A more complex implementation would sort by distance
+      // Find nearest AVAILABLE hospital
       final hospitals = await FirebaseFirestore.instance
           .collection('hospitals')
+          .where('isAvailable', isEqualTo: true)
           .limit(1)
           .get();
-      if (hospitals.docs.isEmpty) {
-        throw Exception("No hospitals available");
+
+      String nearestHospitalId;
+      if (hospitals.docs.isNotEmpty) {
+        nearestHospitalId = hospitals.docs.first.id;
+      } else {
+        // Fallback: If no hospital is explicitly marked available, send to the first one found
+        final anyHospital = await FirebaseFirestore.instance
+            .collection('hospitals')
+            .limit(1)
+            .get();
+            
+        if (anyHospital.docs.isEmpty) {
+          throw Exception("No hospitals registered in the system.");
+        }
+        nearestHospitalId = anyHospital.docs.first.id;
       }
-      final nearestHospitalId = hospitals.docs.first.id;
 
       await HospitalService().triggerHospitalSOS(
         victimId: user.uid,
-        victimName: medInfo?['name'] ?? "Tourist",
+        victimName: victimName,
         lat: pos.latitude,
         lng: pos.longitude,
         medicalInfo: medicalSummary,
@@ -155,21 +176,22 @@ class _EmergencyResponseScreenState extends State<EmergencyResponseScreen>
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              "Emergency Medical Alert triggered from Tourist to Nearest Hospital.",
-            ),
-            backgroundColor: Colors.red,
-          ),
+        PremiumToast.show(
+          context,
+          title: "Medical Alert Dispatched",
+          message: "Emergency broadcast sent to the nearest available hospital.",
+          type: ToastType.error,
         );
         setState(() => sosTriggered = true);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
+        PremiumToast.show(
           context,
-        ).showSnackBar(SnackBar(content: Text("Error: ${e.toString()}")));
+          title: "SOS Error",
+          message: "Unable to dispatch medical alert: ${e.toString()}",
+          type: ToastType.error,
+        );
       }
     }
   }
@@ -180,13 +202,27 @@ class _EmergencyResponseScreenState extends State<EmergencyResponseScreen>
 
     final pos = GeoService().currentPosition;
     if (pos == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Location not available. Enable GPS.")),
+      PremiumToast.show(
+        context,
+        title: "Location Error",
+        message: "Enable GPS to broadcast your position.",
+        type: ToastType.warning,
       );
       return;
     }
 
     try {
+      // Fetch real medical info from the 'tourists' collection
+      final touristDoc = await FirebaseFirestore.instance
+          .collection('tourists')
+          .doc(user.uid)
+          .get();
+      
+      final touristData = touristDoc.data();
+      final m = touristData?['medicalInfo'] as Map<String, dynamic>?;
+      final medicalSummary =
+          "Blood: ${m?['bloodGroup'] ?? 'N/A'}, Meds: ${m?['medications'] ?? 'None'}, Allergies: ${m?['allergies'] ?? 'None'}";
+
       // Find nearest available officer
       final officers = await PoliceService().getAvailableOfficersStream().first;
       String? nearestOfficerId;
@@ -196,31 +232,33 @@ class _EmergencyResponseScreenState extends State<EmergencyResponseScreen>
 
       await PoliceService().triggerPoliceSOS(
         victimId: user.uid,
-        victimName: user.displayName ?? "Tourist",
+        victimName: touristData?['username'] ?? user.displayName ?? "Tourist",
         lat: pos.latitude,
         lng: pos.longitude,
-        threat: "Manual Police SOS",
+        threat: "Emergency SOS: $riskLevel Risk",
         riskLevel: riskLevel,
+        medicalInfo: medicalSummary,
         officerId: nearestOfficerId,
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              nearestOfficerId != null
-                  ? "Emergency Police Alert triggered from Tourist to Nearest available Officer."
-                  : "Emergency Police Alert broadcasted to all units!",
-            ),
-            backgroundColor: Colors.blue.shade900,
-          ),
+        PremiumToast.show(
+          context,
+          title: "Police Alert Dispatched",
+          message: nearestOfficerId != null
+                  ? "Emergency request sent to the nearest patrol unit."
+                  : "Emergency request broadcasted to all active units.",
+          type: ToastType.error,
         );
         setState(() => sosTriggered = true);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red),
+        PremiumToast.show(
+          context,
+          title: "SOS Error",
+          message: "Unable to contact police network: $e",
+          type: ToastType.error,
         );
       }
     }
@@ -485,9 +523,7 @@ class _EmergencyResponseScreenState extends State<EmergencyResponseScreen>
                       });
                     },
                     shape: const CircleBorder(),
-                    backgroundColor: _tabController.index == 0
-                        ? Colors.black
-                        : Colors.blue.shade900,
+                    backgroundColor: Colors.black,
                     child: const Icon(Icons.send, color: Colors.white),
                   ),
                 )
@@ -586,7 +622,10 @@ class _EmergencyResponseScreenState extends State<EmergencyResponseScreen>
           ),
           const SizedBox(height: 12),
           StreamBuilder<DocumentSnapshot>(
-            stream: AuthService().getUserProfileStream(user?.uid ?? ""),
+            stream: FirebaseFirestore.instance
+                .collection('tourists')
+                .doc(user?.uid ?? "")
+                .snapshots(),
             builder: (context, snapshot) {
               Map<String, dynamic> info = {
                 "Blood Group": "N/A",
