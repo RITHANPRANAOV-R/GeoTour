@@ -4,6 +4,7 @@ import '../common/report_viewer_screen.dart';
 import '../../services/file_service.dart';
 import '../../models/hospital_model.dart';
 import '../../services/hospital_service.dart';
+import '../../widgets/premium_toast.dart';
 import '../../services/auth_service.dart';
 import 'widgets/transfer_dialog.dart';
 
@@ -44,7 +45,11 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
         ),
         title: const Text(
           "Details",
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 24),
+          style: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.w900,
+            fontSize: 24,
+          ),
         ),
         centerTitle: true,
         actions: [
@@ -53,7 +58,9 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: _getRiskColor(riskLevel).withValues(alpha: 0.5)),
+              border: Border.all(
+                color: _getRiskColor(riskLevel).withValues(alpha: 0.5),
+              ),
             ),
             child: Text(
               riskLevel,
@@ -67,14 +74,19 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
         ],
       ),
       body: FutureBuilder<DocumentSnapshot>(
-        future: FirebaseFirestore.instance.collection('tourists').doc(victimId).get(),
+        future: FirebaseFirestore.instance
+            .collection('tourists')
+            .doc(victimId)
+            .get(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          final touristData = snapshot.data?.data() as Map<String, dynamic>? ?? {};
-          final medicalInfo = touristData['medicalInfo'] as Map<String, dynamic>? ?? {};
+          final touristData =
+              snapshot.data?.data() as Map<String, dynamic>? ?? {};
+          final medicalInfo =
+              touristData['medicalInfo'] as Map<String, dynamic>? ?? {};
           final phone = touristData['phone'] ?? 'N/A';
           final emergencyContacts = touristData['emergencyContacts'] ?? 'N/A';
 
@@ -85,14 +97,33 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
                 const CircleAvatar(
                   radius: 50,
                   backgroundColor: Colors.white,
-                  child: Icon(Icons.person_outline, size: 60, color: Colors.black12),
+                  child: Icon(
+                    Icons.person_outline,
+                    size: 60,
+                    color: Colors.black12,
+                  ),
                 ),
                 const SizedBox(height: 32),
-                _buildDetailField("Patient Name", widget.alertData['victimName'] ?? 'Unknown'),
-                _buildDetailField("Current Medications", medicalInfo['medications'] ?? 'N/A'),
-                _buildDetailField("Allergies", medicalInfo['allergies'] ?? 'N/A'),
-                _buildDetailField("Surgeries", medicalInfo['surgeries'] ?? 'N/A'),
-                _buildReportField("Medical Report", medicalInfo['healthReportFile'] ?? 'N/A'),
+                _buildDetailField(
+                  "Patient Name",
+                  widget.alertData['victimName'] ?? 'Unknown',
+                ),
+                _buildDetailField(
+                  "Current Medications",
+                  medicalInfo['medications'] ?? 'N/A',
+                ),
+                _buildDetailField(
+                  "Allergies",
+                  medicalInfo['allergies'] ?? 'N/A',
+                ),
+                _buildDetailField(
+                  "Surgeries",
+                  medicalInfo['surgeries'] ?? 'N/A',
+                ),
+                _buildReportField(
+                  "Medical Report",
+                  medicalInfo['healthReportFile'] ?? 'N/A',
+                ),
                 _buildDetailField("Contact Number", phone, isPhone: true),
                 _buildDetailField("Emergency Contacts", emergencyContacts),
                 const SizedBox(height: 40),
@@ -102,12 +133,20 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.black,
                       minimumSize: const Size(double.infinity, 60),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
                     ),
                     child: isLoading
                         ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text("Confirm Case",
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                        : const Text(
+                            "Confirm Case",
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
                   ),
                 ] else if (status == 'ongoing') ...[
                   Align(
@@ -133,8 +172,12 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
                       controller: _descriptionController,
                       maxLines: 4,
                       decoration: InputDecoration(
-                        hintText: "Enter treatment details and patient status...",
-                        hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+                        hintText:
+                            "Enter treatment details and patient status...",
+                        hintStyle: TextStyle(
+                          color: Colors.grey.shade400,
+                          fontSize: 14,
+                        ),
                         contentPadding: const EdgeInsets.all(20),
                         border: InputBorder.none,
                       ),
@@ -147,12 +190,23 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
                         child: OutlinedButton(
                           onPressed: isLoading ? null : _transferCase,
                           style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Colors.orange, width: 2),
+                            side: const BorderSide(
+                              color: Colors.orange,
+                              width: 2,
+                            ),
                             minimumSize: const Size(double.infinity, 60),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30),
+                            ),
                           ),
-                          child: const Text("Transfer",
-                              style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 16)),
+                          child: const Text(
+                            "Transfer",
+                            style: TextStyle(
+                              color: Colors.orange,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -160,19 +214,30 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
                         child: ValueListenableBuilder<TextEditingValue>(
                           valueListenable: _descriptionController,
                           builder: (context, value, child) {
-                            final bool canComplete = value.text.trim().isNotEmpty && !isLoading;
+                            final bool canComplete =
+                                value.text.trim().isNotEmpty && !isLoading;
                             return ElevatedButton(
                               onPressed: canComplete ? _completeCase : null,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.green,
                                 disabledBackgroundColor: Colors.grey.shade300,
                                 minimumSize: const Size(double.infinity, 60),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(30),
+                                ),
                               ),
                               child: isLoading
-                                  ? const CircularProgressIndicator(color: Colors.white)
-                                  : const Text("Complete",
-                                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                                  ? const CircularProgressIndicator(
+                                      color: Colors.white,
+                                    )
+                                  : const Text(
+                                      "Complete",
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
                             );
                           },
                         ),
@@ -227,10 +292,11 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
                           child: Text(
                             "CASE ${status.toUpperCase()}",
                             style: TextStyle(
-                                color: _getStatusColor(status), 
-                                fontWeight: FontWeight.w900, 
-                                fontSize: 18, 
-                                letterSpacing: 1),
+                              color: _getStatusColor(status),
+                              fontWeight: FontWeight.w900,
+                              fontSize: 18,
+                              letterSpacing: 1,
+                            ),
                           ),
                         ),
                       ),
@@ -263,17 +329,31 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
             children: [
               Text(
                 label,
-                style: const TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.w600),
+                style: const TextStyle(
+                  color: Colors.grey,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               if (isPhone && value != 'N/A')
                 Container(
                   padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(8)),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                   child: const Row(
                     children: [
                       Icon(Icons.phone_rounded, size: 14, color: Colors.grey),
                       SizedBox(width: 4),
-                      Text("Call", style: TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold)),
+                      Text(
+                        "Call",
+                        style: TextStyle(
+                          color: Colors.grey,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -307,13 +387,21 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
             children: [
               Text(
                 label,
-                style: const TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.w600),
+                style: const TextStyle(
+                  color: Colors.grey,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               if (fileUrl != 'N/A')
                 Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.visibility_outlined, size: 22, color: Colors.black),
+                      icon: const Icon(
+                        Icons.visibility_outlined,
+                        size: 22,
+                        color: Colors.black,
+                      ),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                       onPressed: () {
@@ -330,12 +418,19 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
                     ),
                     const SizedBox(width: 12),
                     IconButton(
-                      icon: const Icon(Icons.download_rounded, size: 22, color: Colors.black),
+                      icon: const Icon(
+                        Icons.download_rounded,
+                        size: 22,
+                        color: Colors.black,
+                      ),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                       onPressed: () {
-                        final isPdf = fileUrl.toLowerCase().contains('.pdf') || fileUrl.contains('/raw/upload/');
-                        final fileName = "Medical_Report_${DateTime.now().millisecondsSinceEpoch}.${isPdf ? 'pdf' : 'jpg'}";
+                        final isPdf =
+                            fileUrl.toLowerCase().contains('.pdf') ||
+                            fileUrl.contains('/raw/upload/');
+                        final fileName =
+                            "Medical_Report_${DateTime.now().millisecondsSinceEpoch}.${isPdf ? 'pdf' : 'jpg'}";
                         FileService.downloadFile(
                           context: context,
                           url: fileUrl,
@@ -349,11 +444,13 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            fileUrl == 'N/A' ? 'No report uploaded' : 'Click "eye" icon to view report',
+            fileUrl == 'N/A'
+                ? 'No report uploaded'
+                : 'Click "eye" icon to view report',
             style: TextStyle(
-              fontWeight: FontWeight.bold, 
+              fontWeight: FontWeight.bold,
               fontSize: 14,
-              color: fileUrl == 'N/A' ? Colors.grey : Colors.black87
+              color: fileUrl == 'N/A' ? Colors.grey : Colors.black87,
             ),
           ),
         ],
@@ -367,12 +464,24 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
       if (user != null) {
         await _hospitalService.acceptCase(user!.uid, widget.alertData['id']);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Case confirmed")));
+          PremiumToast.show(
+            context,
+            title: "Case Confirmed",
+            message: "You have securely accepted this emergency.",
+            type: ToastType.success,
+          );
           Navigator.pop(context);
         }
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+      if (mounted) {
+        PremiumToast.show(
+          context,
+          title: "Action Failed",
+          message: e.toString(),
+          type: ToastType.error,
+        );
+      }
     } finally {
       if (mounted) setState(() => isLoading = false);
     }
@@ -385,14 +494,30 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
     setState(() => isLoading = true);
     try {
       if (user != null) {
-        await _hospitalService.completeCase(user!.uid, widget.alertData['id'], summary);
+        await _hospitalService.completeCase(
+          user!.uid,
+          widget.alertData['id'],
+          summary,
+        );
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Case marked as completed")));
+          PremiumToast.show(
+            context,
+            title: "Case Completed",
+            message: "Patient details filed successfully.",
+            type: ToastType.success,
+          );
           Navigator.pop(context);
         }
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+      if (mounted) {
+        PremiumToast.show(
+          context,
+          title: "Action Failed",
+          message: e.toString(),
+          type: ToastType.error,
+        );
+      }
     } finally {
       if (mounted) setState(() => isLoading = false);
     }
@@ -400,7 +525,7 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
 
   Future<void> _transferCase() async {
     if (user == null) return;
-    
+
     final result = await showDialog<HospitalModel>(
       context: context,
       builder: (context) => TransferDialog(currentHospitalId: user!.uid),
@@ -416,11 +541,23 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
           alertData: widget.alertData,
         );
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Case transferred to ${result.name}")));
+          PremiumToast.show(
+            context,
+            title: "Case Transferred",
+            message: "Alert passed to ${result.name}",
+            type: ToastType.success,
+          );
           Navigator.pop(context);
         }
       } catch (e) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error transferring: $e")));
+        if (mounted) {
+          PremiumToast.show(
+            context,
+            title: "Transfer Error",
+            message: e.toString(),
+            type: ToastType.error,
+          );
+        }
       } finally {
         if (mounted) setState(() => isLoading = false);
       }
@@ -429,19 +566,27 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
 
   Color _getRiskColor(String level) {
     switch (level.toLowerCase()) {
-      case 'extreme': return Colors.red;
-      case 'high': return Colors.orange;
-      case 'medium': return Colors.blue;
-      default: return Colors.green;
+      case 'extreme':
+        return Colors.red;
+      case 'high':
+        return Colors.orange;
+      case 'medium':
+        return Colors.blue;
+      default:
+        return Colors.green;
     }
   }
 
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
-      case 'completed': return Colors.green;
-      case 'transferred': return Colors.orange;
-      case 'ongoing': return Colors.blue;
-      default: return Colors.grey;
+      case 'completed':
+        return Colors.green;
+      case 'transferred':
+        return Colors.orange;
+      case 'ongoing':
+        return Colors.blue;
+      default:
+        return Colors.grey;
     }
   }
 }

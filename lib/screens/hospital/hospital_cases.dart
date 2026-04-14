@@ -31,7 +31,9 @@ class HospitalCasesScreen extends StatelessWidget {
               ),
             ),
             StreamBuilder<QuerySnapshot>(
-              stream: user != null ? hospitalService.getHospitalCasesStream(user.uid) : null,
+              stream: user != null
+                  ? hospitalService.getHospitalCasesStream(user.uid)
+                  : null,
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
                   return Padding(
@@ -39,16 +41,26 @@ class HospitalCasesScreen extends StatelessWidget {
                     child: Center(
                       child: Column(
                         children: [
-                          const Icon(Icons.error_outline_rounded, color: Colors.orange, size: 48),
+                          const Icon(
+                            Icons.error_outline_rounded,
+                            color: Colors.orange,
+                            size: 48,
+                          ),
                           const SizedBox(height: 16),
                           Text(
                             "Failed to load cases",
-                            style: TextStyle(color: Colors.grey.shade700, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              color: Colors.grey.shade700,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           Text(
                             snapshot.error.toString(),
                             textAlign: TextAlign.center,
-                            style: TextStyle(color: Colors.grey.shade400, fontSize: 11),
+                            style: TextStyle(
+                              color: Colors.grey.shade400,
+                              fontSize: 11,
+                            ),
                           ),
                         ],
                       ),
@@ -59,20 +71,29 @@ class HospitalCasesScreen extends StatelessWidget {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Padding(
                     padding: EdgeInsets.all(40.0),
-                    child: Center(child: CircularProgressIndicator(color: Colors.blueAccent)),
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        color: Colors.blueAccent,
+                      ),
+                    ),
                   );
                 }
 
                 final cases = snapshot.data?.docs ?? [];
-                
+
                 // Manual Sort (latest first) to avoid Firestore index requirement
-                final sortedCases = cases.toList()..sort((a, b) {
-                  final aTime = (a.data() as Map<String, dynamic>)['timestamp'] as Timestamp?;
-                  final bTime = (b.data() as Map<String, dynamic>)['timestamp'] as Timestamp?;
-                  if (aTime == null) return 1;
-                  if (bTime == null) return -1;
-                  return bTime.compareTo(aTime);
-                });
+                final sortedCases = cases.toList()
+                  ..sort((a, b) {
+                    final aTime =
+                        (a.data() as Map<String, dynamic>)['timestamp']
+                            as Timestamp?;
+                    final bTime =
+                        (b.data() as Map<String, dynamic>)['timestamp']
+                            as Timestamp?;
+                    if (aTime == null) return 1;
+                    if (bTime == null) return -1;
+                    return bTime.compareTo(aTime);
+                  });
 
                 if (sortedCases.isEmpty) {
                   return Padding(
@@ -80,11 +101,18 @@ class HospitalCasesScreen extends StatelessWidget {
                     child: Center(
                       child: Column(
                         children: [
-                          Icon(Icons.history_rounded, size: 48, color: Colors.grey.shade300),
+                          Icon(
+                            Icons.history_rounded,
+                            size: 48,
+                            color: Colors.grey.shade300,
+                          ),
                           const SizedBox(height: 16),
                           Text(
                             "No case history found.",
-                            style: TextStyle(color: Colors.grey.shade500, fontWeight: FontWeight.w600),
+                            style: TextStyle(
+                              color: Colors.grey.shade500,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ],
                       ),
@@ -95,16 +123,20 @@ class HospitalCasesScreen extends StatelessWidget {
                 return Column(
                   children: sortedCases.map((caseDoc) {
                     final data = caseDoc.data() as Map<String, dynamic>;
-                    
+
                     String dateText = "N/A";
                     if (data['timestamp'] != null) {
                       final timestamp = data['timestamp'] as Timestamp;
                       final date = timestamp.toDate();
-                      dateText = "${_getMonth(date.month)} ${date.day}, ${date.year}";
+                      dateText =
+                          "${_getMonth(date.month)} ${date.day}, ${date.year}";
                     }
 
                     return Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(20),
@@ -146,28 +178,44 @@ class HospitalCasesScreen extends StatelessWidget {
                                 Padding(
                                   padding: const EdgeInsets.all(16),
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Row(
                                         children: [
                                           const SizedBox(width: 8),
                                           CircleAvatar(
                                             radius: 20,
-                                            backgroundColor: Colors.grey.shade100,
-                                            child: Icon(Icons.person_rounded, color: Colors.grey.shade400, size: 20),
+                                            backgroundColor:
+                                                Colors.grey.shade100,
+                                            child: Icon(
+                                              Icons.person_rounded,
+                                              color: Colors.grey.shade400,
+                                              size: 20,
+                                            ),
                                           ),
                                           const SizedBox(width: 12),
                                           Expanded(
                                             child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
                                               children: [
                                                 Text(
-                                                  data['victimName'] ?? 'Unknown',
-                                                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: -0.5),
+                                                  data['victimName'] ??
+                                                      'Unknown',
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.w900,
+                                                    fontSize: 16,
+                                                    letterSpacing: -0.5,
+                                                  ),
                                                 ),
                                                 Text(
                                                   dateText,
-                                                  style: TextStyle(color: Colors.grey.shade400, fontSize: 11, fontWeight: FontWeight.w500),
+                                                  style: TextStyle(
+                                                    color: Colors.grey.shade400,
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
                                                 ),
                                               ],
                                             ),
@@ -177,16 +225,26 @@ class HospitalCasesScreen extends StatelessWidget {
                                       ),
                                       const SizedBox(height: 12),
                                       Padding(
-                                        padding: const EdgeInsets.only(left: 8.0),
+                                        padding: const EdgeInsets.only(
+                                          left: 8.0,
+                                        ),
                                         child: Text(
-                                          data['status'] == 'completed' && data['caseDescription'] != null
+                                          data['status'] == 'completed' &&
+                                                  data['caseDescription'] !=
+                                                      null
                                               ? "Summary: ${data['caseDescription']}"
-                                              : (data['medicalInfo'] ?? 'No description provided for this medical case.'),
+                                              : (data['medicalInfo'] ??
+                                                    'No description provided for this medical case.'),
                                           style: TextStyle(
-                                            color: data['status'] == 'completed' ? Colors.green.shade700 : Colors.grey.shade600,
+                                            color: data['status'] == 'completed'
+                                                ? Colors.green.shade700
+                                                : Colors.grey.shade600,
                                             fontSize: 13,
                                             height: 1.4,
-                                            fontWeight: data['status'] == 'completed' ? FontWeight.w600 : FontWeight.normal,
+                                            fontWeight:
+                                                data['status'] == 'completed'
+                                                ? FontWeight.w600
+                                                : FontWeight.normal,
                                           ),
                                           maxLines: 2,
                                           overflow: TextOverflow.ellipsis,
@@ -235,22 +293,43 @@ class HospitalCasesScreen extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 10),
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.bold,
+          fontSize: 10,
+        ),
       ),
     );
   }
 
   Color _getStatusColor(String? status) {
     switch (status?.toLowerCase()) {
-      case 'ongoing': return Colors.blue;
-      case 'completed': return Colors.green;
-      case 'transferred': return Colors.orange;
-      default: return Colors.grey;
+      case 'ongoing':
+        return Colors.blue;
+      case 'completed':
+        return Colors.green;
+      case 'transferred':
+        return Colors.orange;
+      default:
+        return Colors.grey;
     }
   }
 
   String _getMonth(int month) {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     return months[month - 1];
   }
 }

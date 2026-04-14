@@ -13,8 +13,10 @@ import 'trips_screen.dart';
 import 'maps_screen.dart';
 import 'emergency_response_screen.dart';
 import 'location_picker_screen.dart';
-import 'trip_history_screen.dart'; // Added missing import
+import 'trip_history_screen.dart';
 import '../../services/auth_service.dart';
+import '../../widgets/premium_toast.dart';
+import '../../widgets/premium_dialog.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../widgets/app_drawer.dart';
 
@@ -151,9 +153,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: Container(
                 height: 64,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2), // More transparent glossy effect
+                  color: Colors.white.withValues(
+                    alpha: 0.2,
+                  ), // More transparent glossy effect
                   borderRadius: BorderRadius.circular(32),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.5)),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.5),
+                  ),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.05),
@@ -216,7 +222,7 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   DateTime? startDate;
   DateTime? endDate;
   final MapController _mapController = MapController();
@@ -232,6 +238,7 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     GeoService().removeListener(_updateMapCenter);
     _startController.dispose();
     _endController.dispose();
@@ -245,30 +252,98 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     GeoService().addListener(_updateMapCenter);
     GeoService().onRiskZoneEntered = (zone) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("⚠️ Risk zone detected: $zone! Auto-SOS triggered."),
-            backgroundColor: Colors.red,
-            action: SnackBarAction(
-              label: "VIEW",
-              textColor: Colors.white,
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const EmergencyResponseScreen(),
-                  ),
-                );
-              },
-            ),
-          ),
+        PremiumToast.show(
+          context,
+          title: "Risk Zone Detected",
+          message: "⚠️ $zone! Auto-SOS triggered.",
+          type: ToastType.error,
         );
       }
     };
-    GeoService().startMonitoring();
+    _handleStartMonitoring(isInitial: true);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Re-check when app is resumed from background
+      _handleStartMonitoring(isInitial: false);
+    }
+  }
+
+  Future<void> _handleStartMonitoring({bool isInitial = false}) async {
+    final status = await GeoService().startMonitoring();
+    if (status != LocationStatus.enabled &&
+        (!isInitial || status != LocationStatus.permissionDenied)) {
+      // Don't show annoying popup on first open if it's just 'denied' (system will ask)
+      // But show it if they click refresh or if it's disabled/deniedForever
+      if (mounted) _handlePermissionResult(status);
+    }
+  }
+
+  void _handlePermissionResult(LocationStatus status) {
+    if (status == LocationStatus.enabled) return;
+
+    String title = "Location Error";
+    String message = "";
+    VoidCallback? onAction;
+
+    switch (status) {
+      case LocationStatus.serviceDisabled:
+        title = "GPS Disabled";
+        message = "Please enable location services for travel safety tracking.";
+        onAction = () => GeoService().openLocationSettings();
+        break;
+      case LocationStatus.permissionDenied:
+        message = "Location permission is required to find your way.";
+        onAction = () => _handleStartMonitoring();
+        break;
+      case LocationStatus.permissionDeniedForever:
+        title = "Permission Blocked";
+        message =
+            "Location permission is blocked. Please enable in app settings.";
+        onAction = () => GeoService().openAppSettings();
+        break;
+      default:
+        break;
+    }
+
+    PremiumToast.show(
+      context,
+      title: title,
+      message: message,
+      type: ToastType.warning,
+    );
+
+    if (status != LocationStatus.enabled &&
+        status != LocationStatus.permissionDenied) {
+      _showPremiumSettingsDialog(title, message, onAction, status);
+    }
+  }
+
+  void _showPremiumSettingsDialog(
+    String title,
+    String message,
+    VoidCallback? onAction,
+    LocationStatus status,
+  ) {
+    PremiumDialog.show(
+      context,
+      title: title,
+      message: message,
+      primaryLabel: "SETTINGS",
+      onPrimary: onAction ?? () {},
+      icon: status == LocationStatus.serviceDisabled
+          ? Icons.location_off_rounded
+          : Icons.security_rounded,
+      accentColor: status == LocationStatus.serviceDisabled
+          ? Colors.orange
+          : Colors.red,
+    );
   }
 
   void _updateMapCenter() {
@@ -374,25 +449,44 @@ class _HomePageState extends State<HomePage> {
                       .doc(AuthService().currentUser?.uid ?? "")
                       .snapshots(),
                   builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+                    if (snapshot.connectionState == ConnectionState.waiting &&
+                        !snapshot.hasData) {
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text("Welcome back,", style: TextStyle(fontSize: 14, color: Colors.grey.shade600, fontWeight: FontWeight.w500)),
+                          Text(
+                            "Welcome back,",
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey.shade600,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
                           const SizedBox(height: 4),
-                          Container(width: 80, height: 24, decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(4))),
+                          Container(
+                            width: 80,
+                            height: 24,
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade100,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
                         ],
                       );
                     }
 
                     String name = "";
                     if (snapshot.hasData && snapshot.data!.exists) {
-                      final data = snapshot.data!.data() as Map<String, dynamic>;
+                      final data =
+                          snapshot.data!.data() as Map<String, dynamic>;
                       name = data['username'] ?? data['name'] ?? "";
                     }
-                    
+
                     if (name.isEmpty) {
-                      name = (AuthService().currentUser?.displayName ?? "Tourist").split(' ').first;
+                      name =
+                          (AuthService().currentUser?.displayName ?? "Tourist")
+                              .split(' ')
+                              .first;
                     }
 
                     return Row(
@@ -511,10 +605,13 @@ class _HomePageState extends State<HomePage> {
                             "Your location",
                             style: TextStyle(color: Colors.grey, fontSize: 13),
                           ),
-                          const Icon(
-                            Icons.refresh,
-                            size: 20,
-                            color: Colors.grey,
+                          GestureDetector(
+                            onTap: () => _handleStartMonitoring(),
+                            child: const Icon(
+                              Icons.refresh,
+                              size: 20,
+                              color: Colors.grey,
+                            ),
                           ),
                         ],
                       ),
@@ -856,10 +953,12 @@ class _HomePageState extends State<HomePage> {
                                 final pointsMsg =
                                     "Points: ${_startPoint != null ? 'S' : '-'}${_endPoint != null ? 'E' : '-'}${_stopPoints.whereType<LatLng>().length}";
 
-                                messenger.showSnackBar(
-                                  SnackBar(
-                                    content: Text("Adding trip... $pointsMsg"),
-                                  ),
+                                PremiumToast.show(
+                                  context,
+                                  title: "Planning Trip",
+                                  message:
+                                      "Adding your new journey to GeoTour...",
+                                  type: ToastType.info,
                                 );
 
                                 await TripService().addTrip(
@@ -902,19 +1001,21 @@ class _HomePageState extends State<HomePage> {
                                 });
 
                                 if (mounted) {
-                                  messenger.showSnackBar(
-                                    const SnackBar(
-                                      content: Text("Trip added successfully!"),
-                                    ),
+                                  PremiumToast.show(
+                                    context,
+                                    title: "Trip Added",
+                                    message:
+                                        "Your new trip has been successfully planned!",
+                                    type: ToastType.success,
                                   );
                                 }
                               } else {
-                                messenger.showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      "Please fill in start, end locations and dates",
-                                    ),
-                                  ),
+                                PremiumToast.show(
+                                  context,
+                                  title: "Missing Locations",
+                                  message:
+                                      "Please select start/end points and trial dates.",
+                                  type: ToastType.warning,
                                 );
                               }
                             },

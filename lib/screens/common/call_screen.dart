@@ -76,9 +76,15 @@ class _CallScreenState extends State<CallScreen> {
                 CircleAvatar(
                   radius: 70,
                   backgroundColor: Colors.grey.shade800,
-                  backgroundImage: widget.image != null ? NetworkImage(widget.image!) : null,
+                  backgroundImage: widget.image != null
+                      ? NetworkImage(widget.image!)
+                      : null,
                   child: widget.image == null
-                      ? const Icon(Icons.person, size: 80, color: Colors.white54)
+                      ? const Icon(
+                          Icons.person,
+                          size: 80,
+                          color: Colors.white54,
+                        )
                       : null,
                 ),
                 const SizedBox(height: 24),
@@ -134,7 +140,11 @@ class _CallScreenState extends State<CallScreen> {
                             () {},
                           ),
                           _controlButton(
-                            Icon(_isSpeakerOn ? Icons.volume_up : Icons.volume_down),
+                            Icon(
+                              _isSpeakerOn
+                                  ? Icons.volume_up
+                                  : Icons.volume_down,
+                            ),
                             "Speaker",
                             _isSpeakerOn,
                             () => setState(() => _isSpeakerOn = !_isSpeakerOn),
@@ -156,10 +166,14 @@ class _CallScreenState extends State<CallScreen> {
                                 color: Colors.redAccent,
                                 blurRadius: 15,
                                 spreadRadius: 2,
-                              )
+                              ),
                             ],
                           ),
-                          child: const Icon(Icons.call_end, color: Colors.white, size: 36),
+                          child: const Icon(
+                            Icons.call_end,
+                            color: Colors.white,
+                            size: 36,
+                          ),
                         ),
                       ),
                     ],
@@ -173,7 +187,12 @@ class _CallScreenState extends State<CallScreen> {
     );
   }
 
-  Widget _controlButton(Widget icon, String label, bool isActive, VoidCallback onTap) {
+  Widget _controlButton(
+    Widget icon,
+    String label,
+    bool isActive,
+    VoidCallback onTap,
+  ) {
     return Column(
       children: [
         GestureDetector(
@@ -186,7 +205,9 @@ class _CallScreenState extends State<CallScreen> {
               shape: BoxShape.circle,
             ),
             child: IconTheme(
-              data: IconThemeData(color: isActive ? Colors.black : Colors.white),
+              data: IconThemeData(
+                color: isActive ? Colors.black : Colors.white,
+              ),
               child: icon,
             ),
           ),

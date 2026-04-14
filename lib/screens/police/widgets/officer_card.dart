@@ -45,7 +45,11 @@ class OfficerCard extends StatelessWidget {
                 CircleAvatar(
                   radius: 24,
                   backgroundColor: Colors.blue.shade50,
-                  child: Icon(Icons.person_rounded, color: Colors.blue.shade700, size: 28),
+                  child: Icon(
+                    Icons.person_rounded,
+                    color: Colors.blue.shade700,
+                    size: 28,
+                  ),
                 ),
                 Positioned(
                   right: 0,
@@ -54,7 +58,9 @@ class OfficerCard extends StatelessWidget {
                     width: 14,
                     height: 14,
                     decoration: BoxDecoration(
-                      color: isAvailable ? Colors.green.shade500 : Colors.red.shade500,
+                      color: isAvailable
+                          ? Colors.green.shade500
+                          : Colors.red.shade500,
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.white, width: 2.5),
                     ),
@@ -69,12 +75,20 @@ class OfficerCard extends StatelessWidget {
                 children: [
                   Text(
                     name,
-                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, letterSpacing: -0.5),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16,
+                      letterSpacing: -0.5,
+                    ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     rank,
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w500),
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ],
               ),
@@ -82,17 +96,21 @@ class OfficerCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
-                color: isOnMission 
-                    ? Colors.orange.shade50 
+                color: isOnMission
+                    ? Colors.orange.shade50
                     : (isAvailable ? Colors.green.shade50 : Colors.red.shade50),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
-                isOnMission ? "On Mission" : (isAvailable ? "Available" : "Offline"),
+                isOnMission
+                    ? "On Mission"
+                    : (isAvailable ? "Available" : "Offline"),
                 style: TextStyle(
-                  color: isOnMission 
-                      ? Colors.orange.shade700 
-                      : (isAvailable ? Colors.green.shade700 : Colors.red.shade700),
+                  color: isOnMission
+                      ? Colors.orange.shade700
+                      : (isAvailable
+                            ? Colors.green.shade700
+                            : Colors.red.shade700),
                   fontWeight: FontWeight.w700,
                   fontSize: 12,
                 ),

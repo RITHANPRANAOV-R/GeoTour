@@ -18,7 +18,10 @@ class AlertDetailScreen extends StatelessWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: Colors.black,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -43,7 +46,8 @@ class AlertDetailScreen extends StatelessWidget {
                   ),
                   children: [
                     TileLayer(
-                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      urlTemplate:
+                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                       userAgentPackageName: 'com.geotour.app',
                     ),
                     CircleLayer(
@@ -64,7 +68,11 @@ class AlertDetailScreen extends StatelessWidget {
                           point: position,
                           width: 80,
                           height: 80,
-                          child: Icon(Icons.warning, color: Colors.red, size: 40),
+                          child: Icon(
+                            Icons.warning,
+                            color: Colors.red,
+                            size: 40,
+                          ),
                         ),
                       ],
                     ),
@@ -76,7 +84,10 @@ class AlertDetailScreen extends StatelessWidget {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -84,18 +95,33 @@ class AlertDetailScreen extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Expanded(
-                        child: Text(alert.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        child: Text(
+                          alert.title,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                       _buildSeverityBadge(alert.severity),
                     ],
                   ),
                   const SizedBox(height: 16),
-                  Text(alert.description, style: const TextStyle(fontSize: 14, color: Colors.grey)),
+                  Text(
+                    alert.description,
+                    style: const TextStyle(fontSize: 14, color: Colors.grey),
+                  ),
                   const SizedBox(height: 12),
-                  Text("Occurred: ${alert.timeAgo}", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  Text(
+                    "Occurred: ${alert.timeAgo}",
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ],
               ),
-            )
+            ),
           ],
         ),
       ),
@@ -106,8 +132,18 @@ class AlertDetailScreen extends StatelessWidget {
     String text = severity.toString().split('.').last.toUpperCase();
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(12)),
-      child: Text(text, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+      decoration: BoxDecoration(
+        color: Colors.red,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
     );
   }
 }

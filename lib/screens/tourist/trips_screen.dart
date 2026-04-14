@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/trip_model.dart';
 import '../../services/trip_service.dart';
 import 'trip_detail_screen.dart';
+import '../../widgets/premium_toast.dart';
 
 class TripsScreen extends StatelessWidget {
   const TripsScreen({super.key});
@@ -22,7 +23,11 @@ class TripsScreen extends StatelessWidget {
                 final trips = snapshot.data ?? [];
                 if (trips.isEmpty) {
                   return const Center(
-                    child: Text("No upcoming trips.\nAdd one from the home screen!", textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: 14)),
+                    child: Text(
+                      "No upcoming trips.\nAdd one from the home screen!",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey, fontSize: 14),
+                    ),
                   );
                 }
                 return ListView.builder(
@@ -94,21 +99,42 @@ class TripsScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildRouteNode(trip.startLocation, Icons.circle, Colors.blue),
+                  _buildRouteNode(
+                    trip.startLocation,
+                    Icons.circle,
+                    Colors.blue,
+                  ),
                   if (trip.stops.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(left: 11),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Container(width: 2, height: 10, color: Colors.blue.shade200),
-                          Text("${trip.stops.length} intermediate stops", 
-                            style: TextStyle(fontSize: 10, color: Colors.grey.shade600)),
-                          Container(width: 2, height: 10, color: Colors.blue.shade200),
+                          Container(
+                            width: 2,
+                            height: 10,
+                            color: Colors.blue.shade200,
+                          ),
+                          Text(
+                            "${trip.stops.length} intermediate stops",
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                          Container(
+                            width: 2,
+                            height: 10,
+                            color: Colors.blue.shade200,
+                          ),
                         ],
                       ),
                     ),
-                  _buildRouteNode(trip.endLocation, Icons.location_on, Colors.red),
+                  _buildRouteNode(
+                    trip.endLocation,
+                    Icons.location_on,
+                    Colors.red,
+                  ),
                 ],
               ),
             ),
@@ -120,7 +146,11 @@ class TripsScreen extends StatelessWidget {
                   trip.description,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontStyle: FontStyle.italic),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
+                    fontStyle: FontStyle.italic,
+                  ),
                 ),
               ),
             ],
@@ -131,16 +161,23 @@ class TripsScreen extends StatelessWidget {
                 if (isActive)
                   _buildButton("End trip", () {
                     TripService().endTrip(trip.id);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Trip completed! Moved to history.")),
+                    PremiumToast.show(
+                      context,
+                      title: "Trip Finished",
+                      message:
+                          "Trip completed! Your journey has been moved to history.",
+                      type: ToastType.success,
                     );
                   }),
                 if (isUpcoming && !TripService().hasActiveTrip)
-                  _buildButton("Start trip", () => TripService().startTrip(trip.id)),
+                  _buildButton(
+                    "Start trip",
+                    () => TripService().startTrip(trip.id),
+                  ),
                 if (isUpcoming && TripService().hasActiveTrip)
                   const Icon(Icons.chevron_right, color: Colors.grey),
               ],
-            )
+            ),
           ],
         ),
       ),
@@ -170,10 +207,18 @@ class TripsScreen extends StatelessWidget {
     }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Text(
         text,
-        style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: textColor, letterSpacing: 0.5),
+        style: TextStyle(
+          fontSize: 9,
+          fontWeight: FontWeight.w900,
+          color: textColor,
+          letterSpacing: 0.5,
+        ),
       ),
     );
   }
@@ -183,8 +228,18 @@ class TripsScreen extends StatelessWidget {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-        decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(12)),
-        child: Text(text, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+        decoration: BoxDecoration(
+          color: Colors.black,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          text,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
     );
   }

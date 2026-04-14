@@ -13,7 +13,7 @@ class PoliceProfileScreen extends StatefulWidget {
 class _PoliceProfileScreenState extends State<PoliceProfileScreen> {
   bool isLoading = false;
   bool _isChanged = false;
-  
+
   // Controllers
   final TextEditingController nameController = TextEditingController();
   final TextEditingController badgeController = TextEditingController();
@@ -21,7 +21,8 @@ class _PoliceProfileScreenState extends State<PoliceProfileScreen> {
   final TextEditingController stationController = TextEditingController();
   final TextEditingController divisionController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
-  final TextEditingController stationAddressController = TextEditingController();
+  final TextEditingController stationAddressController =
+      TextEditingController();
   final TextEditingController stationPhoneController = TextEditingController();
 
   @override
@@ -57,7 +58,9 @@ class _PoliceProfileScreenState extends State<PoliceProfileScreen> {
   }
 
   Future<void> _saveProfile() async {
-    if (nameController.text.isEmpty || badgeController.text.isEmpty || stationController.text.isEmpty) {
+    if (nameController.text.isEmpty ||
+        badgeController.text.isEmpty ||
+        stationController.text.isEmpty) {
       PremiumToast.show(
         context,
         title: "Required Fields Missing",
@@ -75,21 +78,22 @@ class _PoliceProfileScreenState extends State<PoliceProfileScreen> {
             .collection('police')
             .doc(user.uid)
             .set({
-          'name': nameController.text.trim(),
-          'badgeNumber': badgeController.text.trim(),
-          'rank': rankController.text.trim(),
-          'station': stationController.text.trim(),
-          'division': divisionController.text.trim(),
-          'personalPhone': phoneController.text.trim(),
-          'stationAddress': stationAddressController.text.trim(),
-          'stationPhone': stationPhoneController.text.trim(),
-          'updatedAt': FieldValue.serverTimestamp(),
-        }, SetOptions(merge: true));
+              'name': nameController.text.trim(),
+              'badgeNumber': badgeController.text.trim(),
+              'rank': rankController.text.trim(),
+              'station': stationController.text.trim(),
+              'division': divisionController.text.trim(),
+              'personalPhone': phoneController.text.trim(),
+              'stationAddress': stationAddressController.text.trim(),
+              'stationPhone': stationPhoneController.text.trim(),
+              'updatedAt': FieldValue.serverTimestamp(),
+            }, SetOptions(merge: true));
 
         // Sync with base users collection
-        await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
-          'name': nameController.text.trim(),
-        });
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .update({'name': nameController.text.trim()});
 
         if (mounted) {
           PremiumToast.show(
@@ -118,7 +122,10 @@ class _PoliceProfileScreenState extends State<PoliceProfileScreen> {
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
-      return const Scaffold(backgroundColor: Color(0xFFF8F9FA), body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        backgroundColor: Color(0xFFF8F9FA),
+        body: Center(child: CircularProgressIndicator()),
+      );
     }
 
     return Scaffold(
@@ -134,10 +141,10 @@ class _PoliceProfileScreenState extends State<PoliceProfileScreen> {
         title: const Text(
           "Officer Profile",
           style: TextStyle(
-            color: Colors.black, 
-            fontWeight: FontWeight.w900, 
+            color: Colors.black,
+            fontWeight: FontWeight.w900,
             fontSize: 24,
-            letterSpacing: -1.0
+            letterSpacing: -1.0,
           ),
         ),
         leading: IconButton(
@@ -152,20 +159,59 @@ class _PoliceProfileScreenState extends State<PoliceProfileScreen> {
           children: [
             // Officer Info Card
             _buildNativeSection("Officer Credentials", Icons.badge_outlined, [
-              _buildNativeInput("Full Name", nameController, Icons.person_outline_rounded),
-              _buildNativeInput("Badge Number", badgeController, Icons.military_tech_outlined),
-              _buildNativeInput("Rank / Designation", rankController, Icons.stars_outlined),
-              _buildNativeInput("Personal Phone", phoneController, Icons.phone_android_rounded, keyboardType: TextInputType.phone),
+              _buildNativeInput(
+                "Full Name",
+                nameController,
+                Icons.person_outline_rounded,
+              ),
+              _buildNativeInput(
+                "Badge Number",
+                badgeController,
+                Icons.military_tech_outlined,
+              ),
+              _buildNativeInput(
+                "Rank / Designation",
+                rankController,
+                Icons.stars_outlined,
+              ),
+              _buildNativeInput(
+                "Personal Phone",
+                phoneController,
+                Icons.phone_android_rounded,
+                keyboardType: TextInputType.phone,
+              ),
             ]),
             const SizedBox(height: 20),
 
             // Station Information
-            _buildNativeSection("Station Assignment", Icons.location_city_outlined, [
-              _buildNativeInput("Police Station Name", stationController, Icons.account_balance_rounded),
-              _buildNativeInput("Division / District", divisionController, Icons.map_outlined),
-              _buildNativeInput("Station Phone", stationPhoneController, Icons.local_phone_rounded, keyboardType: TextInputType.phone),
-              _buildNativeInput("Station Address", stationAddressController, Icons.location_on_rounded, maxLines: 2),
-            ]),
+            _buildNativeSection(
+              "Station Assignment",
+              Icons.location_city_outlined,
+              [
+                _buildNativeInput(
+                  "Police Station Name",
+                  stationController,
+                  Icons.account_balance_rounded,
+                ),
+                _buildNativeInput(
+                  "Division / District",
+                  divisionController,
+                  Icons.map_outlined,
+                ),
+                _buildNativeInput(
+                  "Station Phone",
+                  stationPhoneController,
+                  Icons.local_phone_rounded,
+                  keyboardType: TextInputType.phone,
+                ),
+                _buildNativeInput(
+                  "Station Address",
+                  stationAddressController,
+                  Icons.location_on_rounded,
+                  maxLines: 2,
+                ),
+              ],
+            ),
             const SizedBox(height: 32),
 
             // Bottom Save Button
@@ -179,12 +225,18 @@ class _PoliceProfileScreenState extends State<PoliceProfileScreen> {
                   disabledBackgroundColor: Colors.grey.shade300,
                   foregroundColor: Colors.white,
                   disabledForegroundColor: Colors.grey.shade600,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   elevation: 0,
                 ),
                 child: const Text(
                   "SAVE CHANGES",
-                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 16,
+                    letterSpacing: 1,
+                  ),
                 ),
               ),
             ),
@@ -195,7 +247,11 @@ class _PoliceProfileScreenState extends State<PoliceProfileScreen> {
     );
   }
 
-  Widget _buildNativeSection(String title, IconData icon, List<Widget> children) {
+  Widget _buildNativeSection(
+    String title,
+    IconData icon,
+    List<Widget> children,
+  ) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -227,7 +283,10 @@ class _PoliceProfileScreenState extends State<PoliceProfileScreen> {
               const SizedBox(width: 12),
               Text(
                 title,
-                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 18,
+                ),
               ),
             ],
           ),
@@ -237,22 +296,35 @@ class _PoliceProfileScreenState extends State<PoliceProfileScreen> {
             return Column(
               children: [
                 entry.value,
-                if (idx < children.length - 1) const Divider(height: 32, color: Color(0xFFF1F1F1)),
+                if (idx < children.length - 1)
+                  const Divider(height: 32, color: Color(0xFFF1F1F1)),
               ],
             );
-          }).toList(),
+          }),
         ],
       ),
     );
   }
 
-  Widget _buildNativeInput(String label, TextEditingController controller, IconData icon, {TextInputType? keyboardType, int maxLines = 1, String? hint}) {
+  Widget _buildNativeInput(
+    String label,
+    TextEditingController controller,
+    IconData icon, {
+    TextInputType? keyboardType,
+    int maxLines = 1,
+    String? hint,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label.toUpperCase(),
-          style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.w900, letterSpacing: 1),
+          style: const TextStyle(
+            fontSize: 10,
+            color: Colors.grey,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1,
+          ),
         ),
         const SizedBox(height: 8),
         Container(
@@ -272,7 +344,10 @@ class _PoliceProfileScreenState extends State<PoliceProfileScreen> {
               hintStyle: const TextStyle(color: Colors.black26, fontSize: 13),
               prefixIcon: Icon(icon, size: 20, color: Colors.blueGrey.shade300),
               border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 14,
+              ),
             ),
             onChanged: (_) => setState(() => _isChanged = true),
           ),

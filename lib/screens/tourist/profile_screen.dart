@@ -19,7 +19,7 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
   bool isLoading = false;
   bool isUploading = false;
   bool _isChanged = false;
-  
+
   // Cloudinary Configuration
   static const String _cloudName = "dwkswq6b6";
   static const String _uploadPreset = "Medical_Health_Report_Files";
@@ -28,19 +28,30 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController travelIdController = TextEditingController();
-  
+
   final TextEditingController medicationsController = TextEditingController();
   final TextEditingController allergiesController = TextEditingController();
   final TextEditingController surgeriesController = TextEditingController();
-  
-  final TextEditingController emergencyContactNameController = TextEditingController();
-  final TextEditingController emergencyContactPhoneController = TextEditingController();
+
+  final TextEditingController emergencyContactNameController =
+      TextEditingController();
+  final TextEditingController emergencyContactPhoneController =
+      TextEditingController();
 
   String bloodGroup = "O+";
   String? reportUrl;
   String? reportName;
-  
-  final List<String> bloodGroups = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
+
+  final List<String> bloodGroups = [
+    "A+",
+    "A-",
+    "B+",
+    "B-",
+    "AB+",
+    "AB-",
+    "O+",
+    "O-",
+  ];
 
   @override
   void initState() {
@@ -66,14 +77,16 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
           nameController.text = data['username'] ?? user.displayName ?? "";
           phoneController.text = data['phone'] ?? "";
           travelIdController.text = data['travelId'] ?? "";
-          
+
           if (m != null) {
             bloodGroup = m['bloodGroup'] ?? "O+";
             medicationsController.text = m['medications'] ?? "";
             allergiesController.text = m['allergies'] ?? "";
             surgeriesController.text = m['surgeries'] ?? "";
             reportUrl = m['healthReportFile'] ?? m['reportUrl'];
-            reportName = m['reportName'] ?? (reportUrl != null ? "Medical_Report" : null);
+            reportName =
+                m['reportName'] ??
+                (reportUrl != null ? "Medical_Report" : null);
           }
 
           if (e != null) {
@@ -91,8 +104,12 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
     if (nameController.text.isNotEmpty) totalPoints += 15;
     if (phoneController.text.isNotEmpty) totalPoints += 15;
     if (travelIdController.text.isNotEmpty) totalPoints += 10;
-    if (medicationsController.text.isNotEmpty || allergiesController.text.isNotEmpty) totalPoints += 20;
-    if (emergencyContactNameController.text.isNotEmpty && emergencyContactPhoneController.text.isNotEmpty) totalPoints += 20;
+    if (medicationsController.text.isNotEmpty ||
+        allergiesController.text.isNotEmpty)
+      totalPoints += 20;
+    if (emergencyContactNameController.text.isNotEmpty &&
+        emergencyContactPhoneController.text.isNotEmpty)
+      totalPoints += 20;
     if (reportUrl != null) totalPoints += 20;
     return totalPoints / 100;
   }
@@ -109,7 +126,9 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
       String fileName = result.files.single.name;
 
       try {
-        final url = Uri.parse('https://api.cloudinary.com/v1_1/$_cloudName/auto/upload');
+        final url = Uri.parse(
+          'https://api.cloudinary.com/v1_1/$_cloudName/auto/upload',
+        );
         final request = http.MultipartRequest('POST', url)
           ..fields['upload_preset'] = _uploadPreset
           ..files.add(await http.MultipartFile.fromPath('file', file.path));
@@ -124,8 +143,8 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
             _isChanged = true;
           });
           PremiumToast.show(
-            context, 
-            title: "Report Uploaded", 
+            context,
+            title: "Report Uploaded",
             message: "Your medical document is securely saved.",
             type: ToastType.success,
           );
@@ -156,28 +175,29 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
             .collection('tourists')
             .doc(user.uid)
             .set({
-          'username': nameController.text.trim(),
-          'phone': phoneController.text.trim(),
-          'travelId': travelIdController.text.trim(),
-          'medicalInfo': {
-            'bloodGroup': bloodGroup,
-            'medications': medicationsController.text.trim(),
-            'allergies': allergiesController.text.trim(),
-            'surgeries': surgeriesController.text.trim(),
-            'healthReportFile': reportUrl,
-            'reportName': reportName,
-          },
-          'emergencyContact': {
-            'name': emergencyContactNameController.text.trim(),
-            'phone': emergencyContactPhoneController.text.trim(),
-          },
-          'profileCompleted': _calculateSafetyScore() >= 0.8,
-          'updatedAt': FieldValue.serverTimestamp(),
-        }, SetOptions(merge: true));
+              'username': nameController.text.trim(),
+              'phone': phoneController.text.trim(),
+              'travelId': travelIdController.text.trim(),
+              'medicalInfo': {
+                'bloodGroup': bloodGroup,
+                'medications': medicationsController.text.trim(),
+                'allergies': allergiesController.text.trim(),
+                'surgeries': surgeriesController.text.trim(),
+                'healthReportFile': reportUrl,
+                'reportName': reportName,
+              },
+              'emergencyContact': {
+                'name': emergencyContactNameController.text.trim(),
+                'phone': emergencyContactPhoneController.text.trim(),
+              },
+              'profileCompleted': _calculateSafetyScore() >= 0.8,
+              'updatedAt': FieldValue.serverTimestamp(),
+            }, SetOptions(merge: true));
 
-        await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
-          'name': nameController.text.trim(),
-        });
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .update({'name': nameController.text.trim()});
 
         if (mounted) {
           PremiumToast.show(
@@ -206,7 +226,10 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
-      return const Scaffold(backgroundColor: Color(0xFFF8F9FA), body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        backgroundColor: Color(0xFFF8F9FA),
+        body: Center(child: CircularProgressIndicator()),
+      );
     }
 
     final double safetyScore = _calculateSafetyScore();
@@ -225,10 +248,10 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
         title: const Text(
           "Profile",
           style: TextStyle(
-            color: Colors.black, 
-            fontWeight: FontWeight.w900, 
+            color: Colors.black,
+            fontWeight: FontWeight.w900,
             fontSize: 24,
-            letterSpacing: -1.0
+            letterSpacing: -1.0,
           ),
         ),
         leading: IconButton(
@@ -248,37 +271,95 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
 
             // Identity Section
             _buildNativeSection("Identity Details", Icons.badge_outlined, [
-              _buildNativeInput("User Display Name", nameController, Icons.person_outline_rounded),
-              _buildNativeInput("Contact Mobile", phoneController, Icons.phone_android_rounded, keyboardType: TextInputType.phone),
-              _buildNativeInput("Government Travel ID", travelIdController, Icons.card_membership_rounded),
+              _buildNativeInput(
+                "User Display Name",
+                nameController,
+                Icons.person_outline_rounded,
+              ),
+              _buildNativeInput(
+                "Contact Mobile",
+                phoneController,
+                Icons.phone_android_rounded,
+                keyboardType: TextInputType.phone,
+              ),
+              _buildNativeInput(
+                "Government Travel ID",
+                travelIdController,
+                Icons.card_membership_rounded,
+              ),
             ]),
             const SizedBox(height: 20),
 
             // Emergency Contacts
-            _buildNativeSection("Emergency Response", Icons.emergency_outlined, [
-              _buildNativeInput("Guardian Name", emergencyContactNameController, Icons.supervisor_account_rounded),
-              _buildNativeInput("Guardian Phone", emergencyContactPhoneController, Icons.contact_emergency_rounded, keyboardType: TextInputType.phone),
-            ]),
+            _buildNativeSection(
+              "Emergency Response",
+              Icons.emergency_outlined,
+              [
+                _buildNativeInput(
+                  "Guardian Name",
+                  emergencyContactNameController,
+                  Icons.supervisor_account_rounded,
+                ),
+                _buildNativeInput(
+                  "Guardian Phone",
+                  emergencyContactPhoneController,
+                  Icons.contact_emergency_rounded,
+                  keyboardType: TextInputType.phone,
+                ),
+              ],
+            ),
             const SizedBox(height: 20),
 
             // Medical Profile
-            _buildNativeSection("Medical Health Bio", Icons.monitor_heart_outlined, [
-              _buildNativeDropdown("Blood Group", bloodGroup, bloodGroups, Icons.bloodtype_rounded, (val) {
-                if (val != null) setState(() {
-                  bloodGroup = val;
-                  _isChanged = true;
-                });
-              }),
-              _buildNativeInput("Daily Medications", medicationsController, Icons.medication_rounded, maxLines: 2, hint: "Enter meds..."),
-              _buildNativeInput("Known Allergies", allergiesController, Icons.warning_rounded, maxLines: 2, hint: "Enter allergies..."),
-              _buildNativeInput("Recent Surgeries", surgeriesController, Icons.personal_injury_rounded, maxLines: 2, hint: "Enter history..."),
-            ]),
+            _buildNativeSection(
+              "Medical Health Bio",
+              Icons.monitor_heart_outlined,
+              [
+                _buildNativeDropdown(
+                  "Blood Group",
+                  bloodGroup,
+                  bloodGroups,
+                  Icons.bloodtype_rounded,
+                  (val) {
+                    if (val != null) {
+                      setState(() {
+                        bloodGroup = val;
+                        _isChanged = true;
+                      });
+                    }
+                  },
+                ),
+                _buildNativeInput(
+                  "Daily Medications",
+                  medicationsController,
+                  Icons.medication_rounded,
+                  maxLines: 2,
+                  hint: "Enter meds...",
+                ),
+                _buildNativeInput(
+                  "Known Allergies",
+                  allergiesController,
+                  Icons.warning_rounded,
+                  maxLines: 2,
+                  hint: "Enter allergies...",
+                ),
+                _buildNativeInput(
+                  "Recent Surgeries",
+                  surgeriesController,
+                  Icons.personal_injury_rounded,
+                  maxLines: 2,
+                  hint: "Enter history...",
+                ),
+              ],
+            ),
             const SizedBox(height: 20),
 
             // Medical Documents
-            _buildNativeSection("Safety Documents", Icons.file_present_outlined, [
-              _buildNativeReportCard(),
-            ]),
+            _buildNativeSection(
+              "Safety Documents",
+              Icons.file_present_outlined,
+              [_buildNativeReportCard()],
+            ),
             const SizedBox(height: 32),
 
             // Bottom Save Button
@@ -292,12 +373,18 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
                   disabledBackgroundColor: Colors.grey.shade300,
                   foregroundColor: Colors.white,
                   disabledForegroundColor: Colors.grey.shade600,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   elevation: 0,
                 ),
                 child: const Text(
                   "SAVE CHANGES",
-                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 16,
+                    letterSpacing: 1,
+                  ),
                 ),
               ),
             ),
@@ -335,26 +422,40 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
                 style: TextStyle(color: Colors.grey, fontSize: 13),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
-                  color: isActive ? Colors.green.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+                  color: isActive
+                      ? Colors.green.withOpacity(0.1)
+                      : Colors.grey.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: isActive ? Colors.green.withOpacity(0.2) : Colors.grey.withOpacity(0.2)),
+                  border: Border.all(
+                    color: isActive
+                        ? Colors.green.withOpacity(0.2)
+                        : Colors.grey.withOpacity(0.2),
+                  ),
                 ),
                 child: Row(
                   children: [
                     Container(
                       width: 8,
                       height: 8,
-                      decoration: BoxDecoration(color: isActive ? Colors.green : Colors.grey, shape: BoxShape.circle),
+                      decoration: BoxDecoration(
+                        color: isActive ? Colors.green : Colors.grey,
+                        shape: BoxShape.circle,
+                      ),
                     ),
                     const SizedBox(width: 8),
                     Text(
                       isActive ? "Highly Secure" : "Incomplete",
                       style: TextStyle(
-                        fontWeight: FontWeight.w700, 
-                        color: isActive ? Colors.green.shade700 : Colors.grey.shade700, 
-                        fontSize: 12
+                        fontWeight: FontWeight.w700,
+                        color: isActive
+                            ? Colors.green.shade700
+                            : Colors.grey.shade700,
+                        fontSize: 12,
                       ),
                     ),
                   ],
@@ -371,11 +472,19 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
                   children: [
                     Text(
                       "${(score * 100).toInt()}% Verified",
-                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, letterSpacing: -0.5),
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.5,
+                      ),
                     ),
                     const Text(
                       "Your safety profile is used by responders in case of emergency.",
-                      style: TextStyle(fontSize: 12, color: Colors.grey, height: 1.4),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                        height: 1.4,
+                      ),
                     ),
                   ],
                 ),
@@ -399,7 +508,11 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
     );
   }
 
-  Widget _buildNativeSection(String title, IconData icon, List<Widget> children) {
+  Widget _buildNativeSection(
+    String title,
+    IconData icon,
+    List<Widget> children,
+  ) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -431,7 +544,10 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
               const SizedBox(width: 12),
               Text(
                 title,
-                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 18,
+                ),
               ),
             ],
           ),
@@ -441,22 +557,35 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
             return Column(
               children: [
                 entry.value,
-                if (idx < children.length - 1) const Divider(height: 32, color: Color(0xFFF1F1F1)),
+                if (idx < children.length - 1)
+                  const Divider(height: 32, color: Color(0xFFF1F1F1)),
               ],
             );
-          }).toList(),
+          }),
         ],
       ),
     );
   }
 
-  Widget _buildNativeInput(String label, TextEditingController controller, IconData icon, {TextInputType? keyboardType, int maxLines = 1, String? hint}) {
+  Widget _buildNativeInput(
+    String label,
+    TextEditingController controller,
+    IconData icon, {
+    TextInputType? keyboardType,
+    int maxLines = 1,
+    String? hint,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label.toUpperCase(),
-          style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.w900, letterSpacing: 1),
+          style: const TextStyle(
+            fontSize: 10,
+            color: Colors.grey,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1,
+          ),
         ),
         const SizedBox(height: 8),
         Container(
@@ -476,7 +605,10 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
               hintStyle: const TextStyle(color: Colors.black26, fontSize: 13),
               prefixIcon: Icon(icon, size: 20, color: Colors.blueGrey.shade300),
               border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 14,
+              ),
             ),
             onChanged: (_) => setState(() => _isChanged = true),
           ),
@@ -485,13 +617,24 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
     );
   }
 
-  Widget _buildNativeDropdown(String label, String value, List<String> items, IconData icon, Function(String?) onChanged) {
+  Widget _buildNativeDropdown(
+    String label,
+    String value,
+    List<String> items,
+    IconData icon,
+    Function(String?) onChanged,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label.toUpperCase(),
-          style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.w900, letterSpacing: 1),
+          style: const TextStyle(
+            fontSize: 10,
+            color: Colors.grey,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1,
+          ),
         ),
         const SizedBox(height: 8),
         Container(
@@ -510,7 +653,20 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
                   value: value,
                   isExpanded: true,
                   underline: Container(),
-                  items: items.map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)))).toList(),
+                  items: items
+                      .map(
+                        (e) => DropdownMenuItem(
+                          value: e,
+                          child: Text(
+                            e,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
                   onChanged: onChanged,
                 ),
               ),
@@ -529,20 +685,43 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
             padding: const EdgeInsets.only(bottom: 20),
             child: Row(
               children: [
-                const Icon(Icons.picture_as_pdf_rounded, color: Colors.red, size: 30),
+                const Icon(
+                  Icons.picture_as_pdf_rounded,
+                  color: Colors.red,
+                  size: 30,
+                ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(reportName ?? "Medical_Record.pdf", style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13), overflow: TextOverflow.ellipsis),
-                      const Text("Secure Document Loaded", style: TextStyle(color: Colors.grey, fontSize: 11)),
+                      Text(
+                        reportName ?? "Medical_Record.pdf",
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const Text(
+                        "Secure Document Loaded",
+                        style: TextStyle(color: Colors.grey, fontSize: 11),
+                      ),
                     ],
                   ),
                 ),
                 TextButton(
-                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => ReportViewerScreen(url: reportUrl!, title: "Report"))),
-                  child: const Text("VIEW", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          ReportViewerScreen(url: reportUrl!, title: "Report"),
+                    ),
+                  ),
+                  child: const Text(
+                    "VIEW",
+                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12),
+                  ),
                 ),
               ],
             ),
@@ -550,9 +729,16 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
         else
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 12),
-            child: Text("No medical report. Responders need this.", style: TextStyle(color: Colors.grey, fontSize: 12, fontStyle: FontStyle.italic)),
+            child: Text(
+              "No medical report. Responders need this.",
+              style: TextStyle(
+                color: Colors.grey,
+                fontSize: 12,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
           ),
-        
+
         SizedBox(
           width: double.infinity,
           height: 50,
@@ -561,12 +747,28 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.black,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               elevation: 0,
             ),
-            child: isUploading 
-              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 3, color: Colors.white))
-              : Text(reportUrl != null ? "REPLACE REPORT" : "UPLOAD REPORT", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 1)),
+            child: isUploading
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 3,
+                      color: Colors.white,
+                    ),
+                  )
+                : Text(
+                    reportUrl != null ? "REPLACE REPORT" : "UPLOAD REPORT",
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 13,
+                      letterSpacing: 1,
+                    ),
+                  ),
           ),
         ),
       ],

@@ -25,10 +25,15 @@ class TripHistoryScreen extends StatelessWidget {
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: Colors.black,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
-        shape: Border(bottom: BorderSide(color: Colors.grey.shade200, width: 1)),
+        shape: Border(
+          bottom: BorderSide(color: Colors.grey.shade200, width: 1),
+        ),
       ),
       body: StreamBuilder<List<TripModel>>(
         stream: TripService().completedTripsStream,
@@ -37,7 +42,7 @@ class TripHistoryScreen extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           }
           final completedTrips = snapshot.data ?? [];
-          
+
           if (completedTrips.isEmpty) {
             return const Center(
               child: Column(
@@ -45,7 +50,10 @@ class TripHistoryScreen extends StatelessWidget {
                 children: [
                   Icon(Icons.history, size: 64, color: Colors.grey),
                   SizedBox(height: 16),
-                  Text("No completed trips found.", style: TextStyle(color: Colors.grey)),
+                  Text(
+                    "No completed trips found.",
+                    style: TextStyle(color: Colors.grey),
+                  ),
                 ],
               ),
             );
@@ -103,17 +111,26 @@ class TripHistoryScreen extends StatelessWidget {
                     color: Colors.blue.shade50,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.check_circle_outline, color: Colors.blue),
+                  child: const Icon(
+                    Icons.check_circle_outline,
+                    color: Colors.blue,
+                  ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(trip.title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                      Text(
+                        trip.title,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
                       Text(
                         "${trip.startDate.day}/${trip.startDate.month}/${trip.startDate.year} - ${trip.endDate.day}/${trip.endDate.month}/${trip.endDate.year}",
-                        style: const TextStyle(fontSize: 12, color: Colors.grey),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
                       ),
                     ],
                   ),
@@ -131,16 +148,28 @@ class TripHistoryScreen extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                   _buildRouteNode(trip.startLocation, Icons.circle, Colors.blue),
-                   if (trip.stops.isNotEmpty)
+                  _buildRouteNode(
+                    trip.startLocation,
+                    Icons.circle,
+                    Colors.blue,
+                  ),
+                  if (trip.stops.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(left: 7),
                       child: Align(
                         alignment: Alignment.centerLeft,
-                        child: Container(width: 2, height: 10, color: Colors.grey.shade300),
+                        child: Container(
+                          width: 2,
+                          height: 10,
+                          color: Colors.grey.shade300,
+                        ),
                       ),
                     ),
-                   _buildRouteNode(trip.endLocation, Icons.location_on, Colors.red),
+                  _buildRouteNode(
+                    trip.endLocation,
+                    Icons.location_on,
+                    Colors.red,
+                  ),
                 ],
               ),
             ),
@@ -160,7 +189,11 @@ class TripHistoryScreen extends StatelessWidget {
             location,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500),
+            style: const TextStyle(
+              fontSize: 12,
+              color: Colors.grey,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ),
       ],

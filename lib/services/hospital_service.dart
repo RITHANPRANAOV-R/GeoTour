@@ -19,10 +19,10 @@ class HospitalService {
         .where('isAvailable', isEqualTo: true)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs
-          .map((doc) => HospitalModel.fromFirestore(doc))
-          .toList();
-    });
+          return snapshot.docs
+              .map((doc) => HospitalModel.fromFirestore(doc))
+              .toList();
+        });
   }
 
   Future<void> updateHospitalStatus(String hospitalId, bool isAvailable) async {
@@ -57,22 +57,26 @@ class HospitalService {
         .collection('alerts')
         .doc(alertId)
         .update({
-      'status': 'ongoing',
-      'acceptedAt': FieldValue.serverTimestamp(),
-    });
+          'status': 'ongoing',
+          'acceptedAt': FieldValue.serverTimestamp(),
+        });
   }
 
-  Future<void> completeCase(String hospitalId, String alertId, String description) async {
+  Future<void> completeCase(
+    String hospitalId,
+    String alertId,
+    String description,
+  ) async {
     await _firestore
         .collection('hospitals')
         .doc(hospitalId)
         .collection('alerts')
         .doc(alertId)
         .update({
-      'status': 'completed',
-      'completedAt': FieldValue.serverTimestamp(),
-      'caseDescription': description,
-    });
+          'status': 'completed',
+          'completedAt': FieldValue.serverTimestamp(),
+          'caseDescription': description,
+        });
   }
 
   Future<void> transferCase({
@@ -101,7 +105,7 @@ class HospitalService {
         .doc(toHospitalId)
         .collection('alerts')
         .doc(alertId); // Keep same ID to track
-    
+
     final newData = Map<String, dynamic>.from(alertData);
     newData['status'] = 'pending';
     newData['transferredFrom'] = fromHospitalId;

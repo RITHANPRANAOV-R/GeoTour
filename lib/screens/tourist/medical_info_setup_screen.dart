@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../../widgets/premium_toast.dart';
 
 class MedicalInfoSetupScreen extends StatefulWidget {
   const MedicalInfoSetupScreen({super.key});
@@ -40,8 +41,12 @@ class _MedicalInfoSetupScreenState extends State<MedicalInfoSetupScreen> {
 
   Future<void> saveMedicalDetails() async {
     if (selectedBloodGroup == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please select your blood group")),
+      PremiumToast.show(
+        context,
+        title: "Medical Record",
+        message:
+            "Please select your blood group to ensure emergency readiness.",
+        type: ToastType.warning,
       );
       return;
     }
@@ -55,20 +60,30 @@ class _MedicalInfoSetupScreenState extends State<MedicalInfoSetupScreen> {
     }
 
     String? healthReportUrl = selectedFileName;
-    
+
     try {
       // 1. Upload file if selected
       if (selectedFilePath != null || selectedFileBytes != null) {
-        final url = Uri.parse("https://api.cloudinary.com/v1_1/$_cloudName/auto/upload");
-        
+        final url = Uri.parse(
+          "https://api.cloudinary.com/v1_1/$_cloudName/auto/upload",
+        );
+
         final request = http.MultipartRequest("POST", url)
           ..fields['upload_preset'] = _uploadPreset
           ..fields['folder'] = 'medical_reports';
 
         if (selectedFilePath != null) {
-          request.files.add(await http.MultipartFile.fromPath('file', selectedFilePath!));
+          request.files.add(
+            await http.MultipartFile.fromPath('file', selectedFilePath!),
+          );
         } else {
-          request.files.add(http.MultipartFile.fromBytes('file', selectedFileBytes!, filename: selectedFileName));
+          request.files.add(
+            http.MultipartFile.fromBytes(
+              'file',
+              selectedFileBytes!,
+              filename: selectedFileName,
+            ),
+          );
         }
 
         final response = await request.send();
@@ -79,8 +94,11 @@ class _MedicalInfoSetupScreenState extends State<MedicalInfoSetupScreen> {
         if (response.statusCode >= 200 && response.statusCode < 300) {
           healthReportUrl = jsonResponse['secure_url'];
         } else {
-          final errorMsg = jsonResponse['error']?['message'] ?? "Unknown Cloudinary error";
-          throw Exception("Cloudinary Error (${response.statusCode}): $errorMsg");
+          final errorMsg =
+              jsonResponse['error']?['message'] ?? "Unknown Cloudinary error";
+          throw Exception(
+            "Cloudinary Error (${response.statusCode}): $errorMsg",
+          );
         }
       }
 
@@ -115,12 +133,11 @@ class _MedicalInfoSetupScreenState extends State<MedicalInfoSetupScreen> {
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: Colors.redAccent,
-            duration: const Duration(seconds: 5),
-          ),
+        PremiumToast.show(
+          context,
+          title: "Setup Error",
+          message: errorMessage,
+          type: ToastType.error,
         );
       }
     }
@@ -300,7 +317,7 @@ class _MedicalInfoSetupScreenState extends State<MedicalInfoSetupScreen> {
         ),
         const SizedBox(height: 6),
         DropdownButtonFormField<String>(
-          value: selectedBloodGroup,
+          initialValue: selectedBloodGroup,
           onChanged: (value) {
             setState(() {
               selectedBloodGroup = value;

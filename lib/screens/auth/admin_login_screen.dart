@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/premium_toast.dart';
 
 class AdminLoginScreen extends StatefulWidget {
   const AdminLoginScreen({super.key});
@@ -21,9 +22,14 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     final password = passwordController.text.trim();
 
     if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter both email and password")),
-      );
+      if (mounted) {
+        PremiumToast.show(
+          context,
+          title: "Portal Access",
+          message: "Please enter your administrative credentials.",
+          type: ToastType.warning,
+        );
+      }
       return;
     }
 
@@ -39,11 +45,11 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     } else {
       if (mounted) {
         setState(() => isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Invalid Admin Credentials"),
-            backgroundColor: Colors.redAccent,
-          ),
+        PremiumToast.show(
+          context,
+          title: "Security Alert",
+          message: "Invalid administrative credentials provided.",
+          type: ToastType.error,
         );
       }
     }

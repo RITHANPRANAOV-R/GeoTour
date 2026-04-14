@@ -55,13 +55,21 @@ class RiskAlertCard extends StatelessWidget {
         onTap: onTap,
         title: Text(
           name,
-          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18, letterSpacing: -0.5),
+          style: const TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: 18,
+            letterSpacing: -0.5,
+          ),
         ),
         subtitle: Padding(
           padding: const EdgeInsets.only(top: 4),
           child: Text(
             "Triggered $timeText",
-            style: TextStyle(color: Colors.grey.shade500, fontSize: 13, fontWeight: FontWeight.w500),
+            style: TextStyle(
+              color: Colors.grey.shade500,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ),
         trailing: Column(
@@ -89,16 +97,20 @@ class RiskAlertCard extends StatelessWidget {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                   Icon(Icons.check_circle_rounded, color: Colors.blue.shade600, size: 14),
-                   const SizedBox(width: 4),
-                   Text(
-                     "ASSIGNED",
-                     style: TextStyle(
-                       color: Colors.blue.shade700,
-                       fontWeight: FontWeight.w800,
-                       fontSize: 10,
-                     ),
-                   ),
+                  Icon(
+                    Icons.check_circle_rounded,
+                    color: Colors.blue.shade600,
+                    size: 14,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    "ASSIGNED",
+                    style: TextStyle(
+                      color: Colors.blue.shade700,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 10,
+                    ),
+                  ),
                 ],
               ),
             ],

@@ -37,10 +37,15 @@ class TripDetailScreen extends StatelessWidget {
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: Colors.black,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
-        shape: Border(bottom: BorderSide(color: Colors.grey.shade200, width: 1)),
+        shape: Border(
+          bottom: BorderSide(color: Colors.grey.shade200, width: 1),
+        ),
       ),
       body: ListenableBuilder(
         listenable: GeoService(),
@@ -157,7 +162,9 @@ class TripDetailScreen extends StatelessWidget {
                                       width: 20,
                                       height: 20,
                                       decoration: BoxDecoration(
-                                        color: Colors.blue.withValues(alpha: 0.2),
+                                        color: Colors.blue.withValues(
+                                          alpha: 0.2,
+                                        ),
                                         shape: BoxShape.circle,
                                       ),
                                     ),

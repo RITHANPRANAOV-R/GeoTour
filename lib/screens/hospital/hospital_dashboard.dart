@@ -73,7 +73,9 @@ class _HospitalDashboardState extends State<HospitalDashboard> {
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(32),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.5)),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.5),
+                  ),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.05),
@@ -106,7 +108,9 @@ class _HospitalDashboardState extends State<HospitalDashboard> {
         curve: Curves.easeOutQuart,
         margin: const EdgeInsets.all(6),
         decoration: BoxDecoration(
-          color: selected ? Colors.black.withValues(alpha: 0.1) : Colors.transparent,
+          color: selected
+              ? Colors.black.withValues(alpha: 0.1)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(26),
         ),
         child: Center(

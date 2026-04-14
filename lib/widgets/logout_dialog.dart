@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../screens/auth/get_started_screen.dart';
 
 class LogoutDialog {
   static Future<void> show(BuildContext context) async {
@@ -19,7 +20,9 @@ class LogoutDialog {
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.85),
                   borderRadius: BorderRadius.circular(28),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.5)),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.5),
+                  ),
                 ),
                 child: Material(
                   color: Colors.transparent,
@@ -32,7 +35,11 @@ class LogoutDialog {
                           color: Colors.red.withValues(alpha: 0.08),
                           shape: BoxShape.circle,
                         ),
-                        child: Icon(Icons.logout_rounded, color: Colors.red.shade700, size: 32),
+                        child: Icon(
+                          Icons.logout_rounded,
+                          color: Colors.red.shade700,
+                          size: 32,
+                        ),
                       ),
                       const SizedBox(height: 20),
                       const Text(
@@ -62,8 +69,12 @@ class LogoutDialog {
                             child: TextButton(
                               onPressed: () => Navigator.pop(context, false),
                               style: TextButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
                               ),
                               child: const Text(
                                 "Cancel",
@@ -83,8 +94,12 @@ class LogoutDialog {
                                 elevation: 0,
                                 backgroundColor: Colors.red.shade600,
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
                               ),
                               child: const Text(
                                 "Logout",
@@ -106,11 +121,20 @@ class LogoutDialog {
         ),
       ),
     );
-
     if (confirm == true) {
       await AuthService().signOut();
       if (context.mounted) {
-        Navigator.of(context).pushNamedAndRemoveUntil('/getStarted', (route) => false);
+        Navigator.of(context).pushAndRemoveUntil(
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                const GetStartedScreen(),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return FadeTransition(opacity: animation, child: child);
+            },
+            transitionDuration: const Duration(milliseconds: 500),
+          ),
+          (route) => false,
+        );
       }
     }
   }

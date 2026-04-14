@@ -23,7 +23,12 @@ class HospitalHomeContent extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.all(24.0),
               child: StreamBuilder<DocumentSnapshot>(
-                stream: user != null ? FirebaseFirestore.instance.collection('hospitals').doc(user.uid).snapshots() : null,
+                stream: user != null
+                    ? FirebaseFirestore.instance
+                          .collection('hospitals')
+                          .doc(user.uid)
+                          .snapshots()
+                    : null,
                 builder: (context, snapshot) {
                   String name = "Hospital";
                   bool isAvailable = false;
@@ -49,9 +54,14 @@ class HospitalHomeContent extends StatelessWidget {
                             ),
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
-                              color: isAvailable ? Colors.green.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1),
+                              color: isAvailable
+                                  ? Colors.green.withValues(alpha: 0.1)
+                                  : Colors.red.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Row(
@@ -60,7 +70,9 @@ class HospitalHomeContent extends StatelessWidget {
                                 Text(
                                   isAvailable ? "Active" : "Offline",
                                   style: TextStyle(
-                                    color: isAvailable ? Colors.green : Colors.red,
+                                    color: isAvailable
+                                        ? Colors.green
+                                        : Colors.red,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 12,
                                   ),
@@ -70,10 +82,14 @@ class HospitalHomeContent extends StatelessWidget {
                                   value: isAvailable,
                                   onChanged: (value) async {
                                     if (user != null) {
-                                      await hospitalService.updateHospitalStatus(user.uid, value);
+                                      await hospitalService
+                                          .updateHospitalStatus(
+                                            user.uid,
+                                            value,
+                                          );
                                     }
                                   },
-                                  activeColor: Colors.green,
+                                  activeTrackColor: Colors.green,
                                 ),
                               ],
                             ),
@@ -99,11 +115,16 @@ class HospitalHomeContent extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             StreamBuilder<QuerySnapshot>(
-              stream: user != null ? hospitalService.getHospitalAlertsStream(user.uid) : null,
+              stream: user != null
+                  ? hospitalService.getHospitalAlertsStream(user.uid)
+                  : null,
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
                   return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
                     child: Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
@@ -113,17 +134,27 @@ class HospitalHomeContent extends StatelessWidget {
                       ),
                       child: Column(
                         children: [
-                          const Icon(Icons.error_outline_rounded, color: Colors.red, size: 32),
+                          const Icon(
+                            Icons.error_outline_rounded,
+                            color: Colors.red,
+                            size: 32,
+                          ),
                           const SizedBox(height: 12),
                           Text(
                             "Failed to load alerts",
-                            style: TextStyle(color: Colors.red.shade700, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              color: Colors.red.shade700,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             snapshot.error.toString(),
                             textAlign: TextAlign.center,
-                            style: TextStyle(color: Colors.red.shade400, fontSize: 11),
+                            style: TextStyle(
+                              color: Colors.red.shade400,
+                              fontSize: 11,
+                            ),
                           ),
                         ],
                       ),
@@ -134,20 +165,27 @@ class HospitalHomeContent extends StatelessWidget {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Padding(
                     padding: EdgeInsets.all(40.0),
-                    child: Center(child: CircularProgressIndicator(color: Colors.redAccent)),
+                    child: Center(
+                      child: CircularProgressIndicator(color: Colors.redAccent),
+                    ),
                   );
                 }
 
                 final alerts = snapshot.data?.docs ?? [];
-                
+
                 // Manual Sort (latest first) to avoid Firestore index requirement
-                final sortedAlerts = alerts.toList()..sort((a, b) {
-                  final aTime = (a.data() as Map<String, dynamic>)['timestamp'] as Timestamp?;
-                  final bTime = (b.data() as Map<String, dynamic>)['timestamp'] as Timestamp?;
-                  if (aTime == null) return 1;
-                  if (bTime == null) return -1;
-                  return bTime.compareTo(aTime);
-                });
+                final sortedAlerts = alerts.toList()
+                  ..sort((a, b) {
+                    final aTime =
+                        (a.data() as Map<String, dynamic>)['timestamp']
+                            as Timestamp?;
+                    final bTime =
+                        (b.data() as Map<String, dynamic>)['timestamp']
+                            as Timestamp?;
+                    if (aTime == null) return 1;
+                    if (bTime == null) return -1;
+                    return bTime.compareTo(aTime);
+                  });
 
                 if (sortedAlerts.isEmpty) {
                   return Padding(
@@ -155,11 +193,18 @@ class HospitalHomeContent extends StatelessWidget {
                     child: Center(
                       child: Column(
                         children: [
-                          Icon(Icons.local_hospital_rounded, size: 48, color: Colors.grey.shade300),
+                          Icon(
+                            Icons.local_hospital_rounded,
+                            size: 48,
+                            color: Colors.grey.shade300,
+                          ),
                           const SizedBox(height: 16),
                           Text(
                             "No medical risks reported.",
-                            style: TextStyle(color: Colors.grey.shade500, fontWeight: FontWeight.w600),
+                            style: TextStyle(
+                              color: Colors.grey.shade500,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ],
                       ),
@@ -170,11 +215,13 @@ class HospitalHomeContent extends StatelessWidget {
                 return Column(
                   children: sortedAlerts.map((alertDoc) {
                     final data = alertDoc.data() as Map<String, dynamic>;
-                    
+
                     String timeText = "Just now";
                     if (data['timestamp'] != null) {
                       final timestamp = data['timestamp'] as Timestamp;
-                      final diff = DateTime.now().difference(timestamp.toDate());
+                      final diff = DateTime.now().difference(
+                        timestamp.toDate(),
+                      );
                       if (diff.inMinutes < 60) {
                         timeText = "Triggered ${diff.inMinutes}m ago";
                       } else {
@@ -183,7 +230,10 @@ class HospitalHomeContent extends StatelessWidget {
                     }
 
                     return Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(20),
@@ -230,25 +280,41 @@ class HospitalHomeContent extends StatelessWidget {
                                       CircleAvatar(
                                         radius: 24,
                                         backgroundColor: Colors.grey.shade100,
-                                        child: Icon(Icons.person_rounded, color: Colors.grey.shade400),
+                                        child: Icon(
+                                          Icons.person_rounded,
+                                          color: Colors.grey.shade400,
+                                        ),
                                       ),
                                       const SizedBox(width: 16),
                                       Expanded(
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
                                             Text(
                                               data['victimName'] ?? 'Unknown',
-                                              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 17, letterSpacing: -0.5),
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.w900,
+                                                fontSize: 17,
+                                                letterSpacing: -0.5,
+                                              ),
                                             ),
                                             const SizedBox(height: 4),
                                             Row(
                                               children: [
-                                                Icon(Icons.access_time_rounded, size: 12, color: Colors.grey.shade400),
+                                                Icon(
+                                                  Icons.access_time_rounded,
+                                                  size: 12,
+                                                  color: Colors.grey.shade400,
+                                                ),
                                                 const SizedBox(width: 4),
                                                 Text(
                                                   timeText,
-                                                  style: TextStyle(color: Colors.grey.shade500, fontSize: 12, fontWeight: FontWeight.w500),
+                                                  style: TextStyle(
+                                                    color: Colors.grey.shade500,
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
                                                 ),
                                               ],
                                             ),
@@ -256,18 +322,29 @@ class HospitalHomeContent extends StatelessWidget {
                                         ),
                                       ),
                                       Column(
-                                        crossAxisAlignment: CrossAxisAlignment.end,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
                                         children: [
                                           Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 6,
+                                            ),
                                             decoration: BoxDecoration(
-                                              color: _getRiskColor(data['riskLevel']).withValues(alpha: 0.1),
-                                              borderRadius: BorderRadius.circular(10),
+                                              color: _getRiskColor(
+                                                data['riskLevel'],
+                                              ).withValues(alpha: 0.1),
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
                                             ),
                                             child: Text(
-                                              data['riskLevel']?.toUpperCase() ?? 'HIGH',
+                                              data['riskLevel']
+                                                      ?.toUpperCase() ??
+                                                  'HIGH',
                                               style: TextStyle(
-                                                color: _getRiskColor(data['riskLevel']),
+                                                color: _getRiskColor(
+                                                  data['riskLevel'],
+                                                ),
                                                 fontWeight: FontWeight.w900,
                                                 fontSize: 10,
                                                 letterSpacing: 0.5,
@@ -275,7 +352,11 @@ class HospitalHomeContent extends StatelessWidget {
                                             ),
                                           ),
                                           const SizedBox(height: 8),
-                                          Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey.shade300),
+                                          Icon(
+                                            Icons.arrow_forward_ios_rounded,
+                                            size: 14,
+                                            color: Colors.grey.shade300,
+                                          ),
                                         ],
                                       ),
                                     ],
@@ -299,10 +380,14 @@ class HospitalHomeContent extends StatelessWidget {
 
   Color _getRiskColor(String? level) {
     switch (level?.toLowerCase()) {
-      case 'extreme': return Colors.red;
-      case 'high': return Colors.orange;
-      case 'medium': return Colors.blue;
-      default: return Colors.green;
+      case 'extreme':
+        return Colors.red;
+      case 'high':
+        return Colors.orange;
+      case 'medium':
+        return Colors.blue;
+      default:
+        return Colors.green;
     }
   }
 }

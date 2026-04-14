@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'location_picker_screen.dart';
 
 import '../../services/user_service.dart';
+import '../../widgets/premium_toast.dart';
 
 class TouristProfileSetupScreen extends StatefulWidget {
   const TouristProfileSetupScreen({super.key});
@@ -55,29 +56,41 @@ class _TouristProfileSetupScreenState extends State<TouristProfileSetupScreen> {
         emergencyNameController.text.isEmpty ||
         emergencyRelationController.text.isEmpty ||
         emergencyPhoneController.text.isEmpty) {
-      ScaffoldMessenger.of(
+      PremiumToast.show(
         context,
-      ).showSnackBar(const SnackBar(content: Text("Please fill all details")));
+        title: "Incomplete Form",
+        message: "Please fill in all the required profile details.",
+        type: ToastType.warning,
+      );
       return;
     }
 
     if (!phoneRegex.hasMatch(phoneController.text.trim())) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter a valid phone number")),
+      PremiumToast.show(
+        context,
+        title: "Invalid Phone",
+        message: "Please enter a valid primary phone number.",
+        type: ToastType.warning,
       );
       return;
     }
 
     if (!phoneRegex.hasMatch(emergencyPhoneController.text.trim())) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter a valid emergency phone number")),
+      PremiumToast.show(
+        context,
+        title: "Invalid Contact",
+        message: "Please enter a valid emergency phone number.",
+        type: ToastType.warning,
       );
       return;
     }
 
     if (!termsAccepted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please accept Terms & Conditions")),
+      PremiumToast.show(
+        context,
+        title: "Terms Required",
+        message: "Please accept the Terms & Conditions to proceed.",
+        type: ToastType.warning,
       );
       return;
     }
@@ -88,9 +101,12 @@ class _TouristProfileSetupScreenState extends State<TouristProfileSetupScreen> {
 
     if (user == null) {
       setState(() => isLoading = false);
-      ScaffoldMessenger.of(
+      PremiumToast.show(
         context,
-      ).showSnackBar(const SnackBar(content: Text("User not logged in")));
+        title: "Auth Error",
+        message: "User session not found. Please log in again.",
+        type: ToastType.error,
+      );
       return;
     }
 
@@ -124,9 +140,12 @@ class _TouristProfileSetupScreenState extends State<TouristProfileSetupScreen> {
       if (!mounted) return;
       setState(() => isLoading = false);
 
-      ScaffoldMessenger.of(
+      PremiumToast.show(
         context,
-      ).showSnackBar(SnackBar(content: Text("Error saving details: $e")));
+        title: "Save Failed",
+        message: "Error saving profile details: $e",
+        type: ToastType.error,
+      );
     }
   }
 
@@ -154,7 +173,7 @@ class _TouristProfileSetupScreenState extends State<TouristProfileSetupScreen> {
             CupertinoButton(
               child: const Text('OK'),
               onPressed: () => Navigator.of(context).pop(),
-            )
+            ),
           ],
         ),
       ),
@@ -165,9 +184,8 @@ class _TouristProfileSetupScreenState extends State<TouristProfileSetupScreen> {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => const LocationPickerScreen(
-          title: "Select your address",
-        ),
+        builder: (context) =>
+            const LocationPickerScreen(title: "Select your address"),
       ),
     );
 
@@ -219,7 +237,11 @@ class _TouristProfileSetupScreenState extends State<TouristProfileSetupScreen> {
               ),
               const SizedBox(height: 20),
               _inputField("Username", usernameController),
-              _inputField("Phone number", phoneController, keyboardType: TextInputType.phone),
+              _inputField(
+                "Phone number",
+                phoneController,
+                keyboardType: TextInputType.phone,
+              ),
               _inputField(
                 "Date of birth",
                 dobController,
@@ -287,7 +309,11 @@ class _TouristProfileSetupScreenState extends State<TouristProfileSetupScreen> {
               const SizedBox(height: 10),
               _inputField("Name", emergencyNameController),
               _inputField("Relationship", emergencyRelationController),
-              _inputField("Phone number", emergencyPhoneController, keyboardType: TextInputType.phone),
+              _inputField(
+                "Phone number",
+                emergencyPhoneController,
+                keyboardType: TextInputType.phone,
+              ),
               const SizedBox(height: 20),
               Row(
                 children: [

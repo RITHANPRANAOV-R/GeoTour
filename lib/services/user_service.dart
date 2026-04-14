@@ -17,9 +17,7 @@ class UserService {
 
     // Initialize role completion if it doesn't exist
     await _db.collection("users").doc(uid).set({
-      "roleCompletion": {
-        role: false,
-      }
+      "roleCompletion": {role: false},
     }, SetOptions(merge: true));
   }
 
@@ -29,19 +27,19 @@ class UserService {
     return null;
   }
 
-  Future<void> updateProfileCompleted(String uid, bool value, String role) async {
+  Future<void> updateProfileCompleted(
+    String uid,
+    bool value,
+    String role,
+  ) async {
     await _db.collection("users").doc(uid).set({
-      "roleCompletion": {
-        role: value,
-      },
+      "roleCompletion": {role: value},
       // Keep global flag for backward compatibility if needed, but per-role is primary
       "profileCompleted": value,
     }, SetOptions(merge: true));
   }
 
   Future<void> switchRole(String uid, String newRole) async {
-    await _db.collection("users").doc(uid).update({
-      "activeRole": newRole,
-    });
+    await _db.collection("users").doc(uid).update({"activeRole": newRole});
   }
 }

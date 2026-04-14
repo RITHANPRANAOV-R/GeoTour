@@ -22,7 +22,9 @@ class _ReportViewerScreenState extends State<ReportViewerScreen> {
   bool _isDownloading = false;
   double _downloadProgress = 0;
 
-  bool get _isPdf => widget.url.toLowerCase().contains('.pdf') || widget.url.contains('/raw/upload/');
+  bool get _isPdf =>
+      widget.url.toLowerCase().contains('.pdf') ||
+      widget.url.contains('/raw/upload/');
 
   Future<void> _downloadFile() async {
     setState(() {
@@ -30,7 +32,8 @@ class _ReportViewerScreenState extends State<ReportViewerScreen> {
       _downloadProgress = 0;
     });
 
-    final fileName = "Medical_Report_${DateTime.now().millisecondsSinceEpoch}.${_isPdf ? 'pdf' : 'jpg'}";
+    final fileName =
+        "Medical_Report_${DateTime.now().millisecondsSinceEpoch}.${_isPdf ? 'pdf' : 'jpg'}";
 
     await FileService.downloadFile(
       context: context,
@@ -111,9 +114,8 @@ class _ReportViewerScreenState extends State<ReportViewerScreen> {
   Widget _buildImageViewer() {
     return PhotoView(
       imageProvider: CachedNetworkImageProvider(widget.url),
-      loadingBuilder: (context, event) => const Center(
-        child: CircularProgressIndicator(color: Colors.white),
-      ),
+      loadingBuilder: (context, event) =>
+          const Center(child: CircularProgressIndicator(color: Colors.white)),
       errorBuilder: (context, error, stackTrace) => const Center(
         child: Text(
           "Could not load image",

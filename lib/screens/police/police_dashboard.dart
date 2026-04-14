@@ -73,9 +73,13 @@ class _PoliceDashboardState extends State<PoliceDashboard> {
               child: Container(
                 height: 64,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2), // More transparent glossy effect
+                  color: Colors.white.withValues(
+                    alpha: 0.2,
+                  ), // More transparent glossy effect
                   borderRadius: BorderRadius.circular(32),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.5)),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.5),
+                  ),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.05),
@@ -109,7 +113,9 @@ class _PoliceDashboardState extends State<PoliceDashboard> {
         curve: Curves.easeOutQuart,
         margin: const EdgeInsets.all(6),
         decoration: BoxDecoration(
-          color: selected ? Colors.black.withValues(alpha: 0.1) : Colors.transparent,
+          color: selected
+              ? Colors.black.withValues(alpha: 0.1)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(26),
         ),
         child: Center(

@@ -38,7 +38,8 @@ class AppDrawer extends StatelessWidget {
               final data = snapshot.data!.data() as Map<String, dynamic>;
               name = data['name'] ?? data['displayName'] ?? "User";
               activeRole = data['activeRole'] ?? "Member";
-              roleKey = data['activeRole']?.toString().toLowerCase() ?? 'tourist';
+              roleKey =
+                  data['activeRole']?.toString().toLowerCase() ?? 'tourist';
             }
 
             return Column(
@@ -89,7 +90,10 @@ class AppDrawer extends StatelessWidget {
                       ),
                       const SizedBox(height: 12),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.blue.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(100),
@@ -108,7 +112,7 @@ class AppDrawer extends StatelessWidget {
                   ),
                 ),
                 const Divider(indent: 24, endIndent: 24),
-                
+
                 // Menu Items
                 Expanded(
                   child: ListView(
@@ -127,7 +131,10 @@ class AppDrawer extends StatelessWidget {
                           } else {
                             target = const TouristProfileScreen();
                           }
-                          Navigator.push(context, MaterialPageRoute(builder: (context) => target));
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => target),
+                          );
                         },
                       ),
                       _buildDrawerItem(

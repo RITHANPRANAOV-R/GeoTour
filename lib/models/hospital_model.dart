@@ -25,9 +25,13 @@ class HospitalModel {
     this.distance = 0.0,
   });
 
-  factory HospitalModel.fromFirestore(DocumentSnapshot doc, {double userLat = 0, double userLng = 0}) {
+  factory HospitalModel.fromFirestore(
+    DocumentSnapshot doc, {
+    double userLat = 0,
+    double userLng = 0,
+  }) {
     final data = doc.data() as Map<String, dynamic>;
-    
+
     // Simple Euclidean distance or just 0 for now if not calculated
     return HospitalModel(
       uid: doc.id,

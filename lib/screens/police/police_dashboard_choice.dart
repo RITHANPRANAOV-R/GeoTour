@@ -33,24 +33,28 @@ class PoliceDashboardChoiceScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 48),
-              
+
               _buildChoiceCard(
                 context,
                 title: "Police Dashboard",
-                subtitle: "Access emergency alerts, patrol assignments, and incident reports.",
+                subtitle:
+                    "Access emergency alerts, patrol assignments, and incident reports.",
                 icon: Icons.local_police_rounded,
-                onTap: () => Navigator.pushReplacementNamed(context, "/policeHome"),
+                onTap: () =>
+                    Navigator.pushReplacementNamed(context, "/policeHome"),
                 isPrimary: true,
               ),
-              
+
               const SizedBox(height: 20),
-              
+
               _buildChoiceCard(
                 context,
                 title: "Tourist Dashboard",
-                subtitle: "View geo-fence zones, safety tips, and travel intelligence.",
+                subtitle:
+                    "View geo-fence zones, safety tips, and travel intelligence.",
                 icon: Icons.explore_rounded,
-                onTap: () => Navigator.pushReplacementNamed(context, "/touristHome"),
+                onTap: () =>
+                    Navigator.pushReplacementNamed(context, "/touristHome"),
                 isPrimary: false,
               ),
             ],
@@ -75,7 +79,9 @@ class PoliceDashboardChoiceScreen extends StatelessWidget {
         decoration: BoxDecoration(
           color: isPrimary ? Colors.black : Colors.white,
           borderRadius: BorderRadius.circular(24),
-          border: isPrimary ? null : Border.all(color: Colors.grey.shade200, width: 2),
+          border: isPrimary
+              ? null
+              : Border.all(color: Colors.grey.shade200, width: 2),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: isPrimary ? 0.1 : 0.02),
@@ -89,7 +95,9 @@ class PoliceDashboardChoiceScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: isPrimary ? Colors.white.withValues(alpha: 0.1) : const Color(0xFFF8F9FA),
+                color: isPrimary
+                    ? Colors.white.withValues(alpha: 0.1)
+                    : const Color(0xFFF8F9FA),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Icon(

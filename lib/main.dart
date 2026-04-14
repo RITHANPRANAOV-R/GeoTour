@@ -22,9 +22,7 @@ import 'screens/auth/auth_wrapper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const MyApp());
 }
 
@@ -48,7 +46,8 @@ class MyApp extends StatelessWidget {
             TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
           },
         ),
-        cardTheme: CardThemeData( // Changed CardTheme to CardThemeData
+        cardTheme: CardThemeData(
+          // Changed CardTheme to CardThemeData
           elevation: 0,
           color: Colors.white,
           shape: RoundedRectangleBorder(
@@ -109,7 +108,10 @@ class MyApp extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
             borderSide: const BorderSide(color: Colors.black, width: 1.5),
           ),
-          labelStyle: const TextStyle(color: Colors.black54, fontWeight: FontWeight.w500),
+          labelStyle: const TextStyle(
+            color: Colors.black54,
+            fontWeight: FontWeight.w500,
+          ),
         ),
       ),
       home: const AuthWrapper(),
@@ -129,17 +131,21 @@ class MyApp extends StatelessWidget {
         "/signUp": (context) => const SignUpScreen(),
         "/touristProfileSetup": (context) => const TouristProfileSetupScreen(),
         "/policeProfileSetup": (context) => const PoliceProfileSetupScreen(),
-        "/hospitalProfileSetup": (context) => const HospitalProfileSetupScreen(),
+        "/hospitalProfileSetup": (context) =>
+            const HospitalProfileSetupScreen(),
         "/adminProfileSetup": (context) => const AdminProfileSetupScreen(),
         "/policeHome": (context) => const PoliceDashboard(),
         "/hospitalHome": (context) => const HospitalDashboard(),
         "/adminHome": (context) => const AdminHomeScreen(),
-        "/postAuthRoleSelection": (context) => const PostAuthRoleSelectionScreen(),
-        "/googleInitialRoleSelection": (context) => const GoogleInitialRoleSelectionScreen(),
+        "/postAuthRoleSelection": (context) =>
+            const PostAuthRoleSelectionScreen(),
+        "/googleInitialRoleSelection": (context) =>
+            const GoogleInitialRoleSelectionScreen(),
         "/medicalInfoSetup": (context) => const MedicalInfoSetupScreen(),
         "/adminLogin": (context) => const AdminLoginScreen(),
         "/touristHome": (context) => const DashboardScreen(),
-        "/policeDashboardChoice": (context) => const PoliceDashboardChoiceScreen(),
+        "/policeDashboardChoice": (context) =>
+            const PoliceDashboardChoiceScreen(),
       },
     );
   }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/user_service.dart';
+import '../../widgets/premium_toast.dart';
 
 class GoogleInitialRoleSelectionScreen extends StatefulWidget {
   const GoogleInitialRoleSelectionScreen({super.key});
@@ -37,8 +38,11 @@ class _GoogleInitialRoleSelectionScreenState
           );
         } else {
           if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Additional roles are restricted for this account.")),
+          PremiumToast.show(
+            context,
+            title: "Role Restricted",
+            message: "Additional roles are restricted for this account.",
+            type: ToastType.warning,
           );
           setState(() => isLoading = false);
           return;
@@ -102,7 +106,9 @@ class _GoogleInitialRoleSelectionScreenState
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: isSelected ? Colors.white.withValues(alpha: 0.2) : const Color(0xFFF8F9FA),
+                color: isSelected
+                    ? Colors.white.withValues(alpha: 0.2)
+                    : const Color(0xFFF8F9FA),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -130,16 +136,26 @@ class _GoogleInitialRoleSelectionScreenState
                     description,
                     style: TextStyle(
                       fontSize: 13,
-                      color: isSelected ? Colors.white.withValues(alpha: 0.8) : Colors.grey.shade600,
+                      color: isSelected
+                          ? Colors.white.withValues(alpha: 0.8)
+                          : Colors.grey.shade600,
                     ),
                   ),
                 ],
               ),
             ),
             if (isSelected)
-              const Icon(Icons.check_circle_rounded, color: Colors.white, size: 28)
+              const Icon(
+                Icons.check_circle_rounded,
+                color: Colors.white,
+                size: 28,
+              )
             else
-              Icon(Icons.circle_outlined, color: Colors.grey.shade300, size: 28),
+              Icon(
+                Icons.circle_outlined,
+                color: Colors.grey.shade300,
+                size: 28,
+              ),
           ],
         ),
       ),
@@ -169,10 +185,7 @@ class _GoogleInitialRoleSelectionScreenState
               const SizedBox(height: 8),
               Text(
                 "Please select your role to get started.",
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey.shade600,
-                ),
+                style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
               ),
               const SizedBox(height: 48),
               Expanded(
@@ -199,7 +212,9 @@ class _GoogleInitialRoleSelectionScreenState
               ),
               const SizedBox(height: 20),
               ElevatedButton(
-                onPressed: isLoading || selectedRole == null ? null : handleRoleSelection,
+                onPressed: isLoading || selectedRole == null
+                    ? null
+                    : handleRoleSelection,
                 child: isLoading
                     ? const SizedBox(
                         width: 24,

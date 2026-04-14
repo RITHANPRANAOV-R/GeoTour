@@ -31,12 +31,19 @@ class ChatService {
     };
 
     final batch = _firestore.batch();
-    
+
     // Update or create chat header
-    batch.set(_firestore.collection('chats').doc(chatId), chatData, SetOptions(merge: true));
-    
+    batch.set(
+      _firestore.collection('chats').doc(chatId),
+      chatData,
+      SetOptions(merge: true),
+    );
+
     // Add message
-    batch.set(_firestore.collection('chats').doc(chatId).collection('messages').doc(), messageData);
+    batch.set(
+      _firestore.collection('chats').doc(chatId).collection('messages').doc(),
+      messageData,
+    );
 
     await batch.commit();
   }

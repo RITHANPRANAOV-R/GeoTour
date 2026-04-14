@@ -70,9 +70,15 @@ class _SystemMonitoringScreenState extends State<SystemMonitoringScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         scrolledUnderElevation: 0,
-        shape: Border(bottom: BorderSide(color: Colors.grey.shade200, width: 1)),
+        shape: Border(
+          bottom: BorderSide(color: Colors.grey.shade200, width: 1),
+        ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black, size: 20),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: Colors.black,
+            size: 20,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
@@ -89,7 +95,7 @@ class _SystemMonitoringScreenState extends State<SystemMonitoringScreen> {
           IconButton(
             icon: const Icon(Icons.refresh_rounded, color: Colors.black),
             onPressed: _fetchInitialData,
-          )
+          ),
         ],
       ),
       body: _isLoading
@@ -104,11 +110,14 @@ class _SystemMonitoringScreenState extends State<SystemMonitoringScreen> {
                           physics: const BouncingScrollPhysics(),
                           padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
                           itemCount: _users.length,
-                          separatorBuilder: (context, index) => const SizedBox(height: 12),
+                          separatorBuilder: (context, index) =>
+                              const SizedBox(height: 12),
                           itemBuilder: (context, index) {
                             final user = _users[index];
-                            final bool isDanger = user['status']?.toString().toLowerCase() == "in danger";
-                            
+                            final bool isDanger =
+                                user['status']?.toString().toLowerCase() ==
+                                "in danger";
+
                             return Container(
                               decoration: BoxDecoration(
                                 gradient: const LinearGradient(
@@ -118,7 +127,9 @@ class _SystemMonitoringScreenState extends State<SystemMonitoringScreen> {
                                 ),
                                 borderRadius: BorderRadius.circular(24),
                                 border: Border.all(
-                                  color: isDanger ? Colors.red.withOpacity(0.2) : const Color(0xFFF1F1F1),
+                                  color: isDanger
+                                      ? Colors.red.withOpacity(0.2)
+                                      : const Color(0xFFF1F1F1),
                                 ),
                                 boxShadow: [
                                   BoxShadow(
@@ -129,39 +140,59 @@ class _SystemMonitoringScreenState extends State<SystemMonitoringScreen> {
                                 ],
                               ),
                               child: ListTile(
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 8,
+                                ),
                                 leading: Container(
                                   padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
-                                    color: (isDanger ? Colors.red : Colors.green).withOpacity(0.1),
+                                    color:
+                                        (isDanger ? Colors.red : Colors.green)
+                                            .withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(14),
                                   ),
                                   child: Icon(
-                                    isDanger ? Icons.warning_rounded : Icons.person_rounded,
+                                    isDanger
+                                        ? Icons.warning_rounded
+                                        : Icons.person_rounded,
                                     color: isDanger ? Colors.red : Colors.green,
                                   ),
                                 ),
                                 title: Text(
                                   user['name'] ?? 'Unknown User',
-                                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 15,
+                                  ),
                                 ),
                                 subtitle: Padding(
                                   padding: const EdgeInsets.only(top: 4),
                                   child: Text(
                                     "Lat: ${user['latitude']}, Lon: ${user['longitude']}",
-                                    style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                                    style: TextStyle(
+                                      color: Colors.grey.shade600,
+                                      fontSize: 13,
+                                    ),
                                   ),
                                 ),
                                 trailing: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
                                   decoration: BoxDecoration(
-                                    color: isDanger ? const Color(0xFFFF3B30) : const Color(0xFFE8F5E9),
+                                    color: isDanger
+                                        ? const Color(0xFFFF3B30)
+                                        : const Color(0xFFE8F5E9),
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: Text(
                                     user['status'] ?? 'Stable',
                                     style: TextStyle(
-                                      color: isDanger ? Colors.white : const Color(0xFF34C759),
+                                      color: isDanger
+                                          ? Colors.white
+                                          : const Color(0xFF34C759),
                                       fontSize: 11,
                                       fontWeight: FontWeight.w900,
                                       letterSpacing: 0.2,
@@ -212,10 +243,7 @@ class _SystemMonitoringScreenState extends State<SystemMonitoringScreen> {
             const SizedBox(height: 4),
             Text(
               "Map API integration pending",
-              style: TextStyle(
-                color: Colors.grey.shade400,
-                fontSize: 11,
-              ),
+              style: TextStyle(color: Colors.grey.shade400, fontSize: 11),
             ),
           ],
         ),

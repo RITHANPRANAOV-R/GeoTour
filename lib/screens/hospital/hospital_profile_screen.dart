@@ -13,7 +13,7 @@ class HospitalProfileScreen extends StatefulWidget {
 class _HospitalProfileScreenState extends State<HospitalProfileScreen> {
   bool isLoading = false;
   bool _isChanged = false;
-  
+
   // Controllers
   final TextEditingController hospitalNameController = TextEditingController();
   final TextEditingController licenseController = TextEditingController();
@@ -69,7 +69,9 @@ class _HospitalProfileScreenState extends State<HospitalProfileScreen> {
   }
 
   Future<void> _saveProfile() async {
-    if (hospitalNameController.text.isEmpty || licenseController.text.isEmpty || erPhoneController.text.isEmpty) {
+    if (hospitalNameController.text.isEmpty ||
+        licenseController.text.isEmpty ||
+        erPhoneController.text.isEmpty) {
       PremiumToast.show(
         context,
         title: "Missing Information",
@@ -87,22 +89,23 @@ class _HospitalProfileScreenState extends State<HospitalProfileScreen> {
             .collection('hospitals')
             .doc(user.uid)
             .set({
-          'hospitalName': hospitalNameController.text.trim(),
-          'licenseNumber': licenseController.text.trim(),
-          'category': category,
-          'emergencyPhone': erPhoneController.text.trim(),
-          'ambulanceNumber': ambulanceNoController.text.trim(),
-          'city': cityController.text.trim(),
-          'fullAddress': addressController.text.trim(),
-          'adminName': adminNameController.text.trim(),
-          'officialEmail': emailController.text.trim(),
-          'updatedAt': FieldValue.serverTimestamp(),
-        }, SetOptions(merge: true));
+              'hospitalName': hospitalNameController.text.trim(),
+              'licenseNumber': licenseController.text.trim(),
+              'category': category,
+              'emergencyPhone': erPhoneController.text.trim(),
+              'ambulanceNumber': ambulanceNoController.text.trim(),
+              'city': cityController.text.trim(),
+              'fullAddress': addressController.text.trim(),
+              'adminName': adminNameController.text.trim(),
+              'officialEmail': emailController.text.trim(),
+              'updatedAt': FieldValue.serverTimestamp(),
+            }, SetOptions(merge: true));
 
         // Sync with base users collection
-        await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
-          'name': hospitalNameController.text.trim(),
-        });
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .update({'name': hospitalNameController.text.trim()});
 
         if (mounted) {
           PremiumToast.show(
@@ -131,7 +134,10 @@ class _HospitalProfileScreenState extends State<HospitalProfileScreen> {
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
-      return const Scaffold(backgroundColor: Color(0xFFF8F9FA), body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        backgroundColor: Color(0xFFF8F9FA),
+        body: Center(child: CircularProgressIndicator()),
+      );
     }
 
     return Scaffold(
@@ -147,10 +153,10 @@ class _HospitalProfileScreenState extends State<HospitalProfileScreen> {
         title: const Text(
           "Facility Profile",
           style: TextStyle(
-            color: Colors.black, 
-            fontWeight: FontWeight.w900, 
+            color: Colors.black,
+            fontWeight: FontWeight.w900,
             fontSize: 24,
-            letterSpacing: -1.0
+            letterSpacing: -1.0,
           ),
         ),
         leading: IconButton(
@@ -164,32 +170,88 @@ class _HospitalProfileScreenState extends State<HospitalProfileScreen> {
         child: Column(
           children: [
             // Hospital Info Card
-            _buildNativeSection("Facility Overview", Icons.local_hospital_outlined, [
-              _buildNativeInput("Hospital Name", hospitalNameController, Icons.business_outlined),
-              _buildNativeInput("License / Registration", licenseController, Icons.verified_user_outlined),
-              _buildNativeDropdown("Speciality Category", category, categories, Icons.category_outlined, (val) {
-                if (val != null) setState(() {
-                  category = val;
-                  _isChanged = true;
-                });
-              }),
-            ]),
+            _buildNativeSection(
+              "Facility Overview",
+              Icons.local_hospital_outlined,
+              [
+                _buildNativeInput(
+                  "Hospital Name",
+                  hospitalNameController,
+                  Icons.business_outlined,
+                ),
+                _buildNativeInput(
+                  "License / Registration",
+                  licenseController,
+                  Icons.verified_user_outlined,
+                ),
+                _buildNativeDropdown(
+                  "Speciality Category",
+                  category,
+                  categories,
+                  Icons.category_outlined,
+                  (val) {
+                    if (val != null) {
+                      setState(() {
+                        category = val;
+                        _isChanged = true;
+                      });
+                    }
+                  },
+                ),
+              ],
+            ),
             const SizedBox(height: 20),
 
             // Coverage / Emergency Section
-            _buildNativeSection("Emergency Readiness", Icons.emergency_outlined, [
-              _buildNativeInput("ER Direct Line", erPhoneController, Icons.phone_callback_rounded, keyboardType: TextInputType.phone),
-              _buildNativeInput("Ambulance Service", ambulanceNoController, Icons.medical_services_rounded, keyboardType: TextInputType.phone),
-              _buildNativeInput("Official Admin Email", emailController, Icons.alternate_email_rounded, keyboardType: TextInputType.emailAddress),
-            ]),
+            _buildNativeSection(
+              "Emergency Readiness",
+              Icons.emergency_outlined,
+              [
+                _buildNativeInput(
+                  "ER Direct Line",
+                  erPhoneController,
+                  Icons.phone_callback_rounded,
+                  keyboardType: TextInputType.phone,
+                ),
+                _buildNativeInput(
+                  "Ambulance Service",
+                  ambulanceNoController,
+                  Icons.medical_services_rounded,
+                  keyboardType: TextInputType.phone,
+                ),
+                _buildNativeInput(
+                  "Official Admin Email",
+                  emailController,
+                  Icons.alternate_email_rounded,
+                  keyboardType: TextInputType.emailAddress,
+                ),
+              ],
+            ),
             const SizedBox(height: 20),
 
             // Location Section
-            _buildNativeSection("Facility Location", Icons.location_on_outlined, [
-              _buildNativeInput("City / District", cityController, Icons.map_outlined),
-              _buildNativeInput("Full Address", addressController, Icons.near_me_rounded, maxLines: 2),
-              _buildNativeInput("Lead Administrator", adminNameController, Icons.person_pin_rounded),
-            ]),
+            _buildNativeSection(
+              "Facility Location",
+              Icons.location_on_outlined,
+              [
+                _buildNativeInput(
+                  "City / District",
+                  cityController,
+                  Icons.map_outlined,
+                ),
+                _buildNativeInput(
+                  "Full Address",
+                  addressController,
+                  Icons.near_me_rounded,
+                  maxLines: 2,
+                ),
+                _buildNativeInput(
+                  "Lead Administrator",
+                  adminNameController,
+                  Icons.person_pin_rounded,
+                ),
+              ],
+            ),
             const SizedBox(height: 32),
 
             // Bottom Save Button
@@ -203,12 +265,18 @@ class _HospitalProfileScreenState extends State<HospitalProfileScreen> {
                   disabledBackgroundColor: Colors.grey.shade300,
                   foregroundColor: Colors.white,
                   disabledForegroundColor: Colors.grey.shade600,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   elevation: 0,
                 ),
                 child: const Text(
                   "SAVE CHANGES",
-                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 16,
+                    letterSpacing: 1,
+                  ),
                 ),
               ),
             ),
@@ -219,7 +287,11 @@ class _HospitalProfileScreenState extends State<HospitalProfileScreen> {
     );
   }
 
-  Widget _buildNativeSection(String title, IconData icon, List<Widget> children) {
+  Widget _buildNativeSection(
+    String title,
+    IconData icon,
+    List<Widget> children,
+  ) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -251,7 +323,10 @@ class _HospitalProfileScreenState extends State<HospitalProfileScreen> {
               const SizedBox(width: 12),
               Text(
                 title,
-                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 18,
+                ),
               ),
             ],
           ),
@@ -261,22 +336,35 @@ class _HospitalProfileScreenState extends State<HospitalProfileScreen> {
             return Column(
               children: [
                 entry.value,
-                if (idx < children.length - 1) const Divider(height: 32, color: Color(0xFFF1F1F1)),
+                if (idx < children.length - 1)
+                  const Divider(height: 32, color: Color(0xFFF1F1F1)),
               ],
             );
-          }).toList(),
+          }),
         ],
       ),
     );
   }
 
-  Widget _buildNativeInput(String label, TextEditingController controller, IconData icon, {TextInputType? keyboardType, int maxLines = 1, String? hint}) {
+  Widget _buildNativeInput(
+    String label,
+    TextEditingController controller,
+    IconData icon, {
+    TextInputType? keyboardType,
+    int maxLines = 1,
+    String? hint,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label.toUpperCase(),
-          style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.w900, letterSpacing: 1),
+          style: const TextStyle(
+            fontSize: 10,
+            color: Colors.grey,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1,
+          ),
         ),
         const SizedBox(height: 8),
         Container(
@@ -296,7 +384,10 @@ class _HospitalProfileScreenState extends State<HospitalProfileScreen> {
               hintStyle: const TextStyle(color: Colors.black26, fontSize: 13),
               prefixIcon: Icon(icon, size: 20, color: Colors.blueGrey.shade300),
               border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 14,
+              ),
             ),
             onChanged: (_) => setState(() => _isChanged = true),
           ),
@@ -305,13 +396,24 @@ class _HospitalProfileScreenState extends State<HospitalProfileScreen> {
     );
   }
 
-  Widget _buildNativeDropdown(String label, String value, List<String> items, IconData icon, Function(String?) onChanged) {
+  Widget _buildNativeDropdown(
+    String label,
+    String value,
+    List<String> items,
+    IconData icon,
+    Function(String?) onChanged,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label.toUpperCase(),
-          style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.w900, letterSpacing: 1),
+          style: const TextStyle(
+            fontSize: 10,
+            color: Colors.grey,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1,
+          ),
         ),
         const SizedBox(height: 8),
         Container(
@@ -331,7 +433,20 @@ class _HospitalProfileScreenState extends State<HospitalProfileScreen> {
                   isExpanded: true,
                   dropdownColor: Colors.white,
                   underline: Container(),
-                  items: items.map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)))).toList(),
+                  items: items
+                      .map(
+                        (e) => DropdownMenuItem(
+                          value: e,
+                          child: Text(
+                            e,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
                   onChanged: onChanged,
                 ),
               ),

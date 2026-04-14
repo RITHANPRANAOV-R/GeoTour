@@ -32,12 +32,18 @@ class _PoliceChatScreenState extends State<PoliceChatScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: Colors.black,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           widget.recipientName,
-          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+          style: const TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
       body: Column(
@@ -61,31 +67,48 @@ class _PoliceChatScreenState extends State<PoliceChatScreen> {
                   padding: const EdgeInsets.all(16),
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
-                    final msgData = messages[index].data() as Map<String, dynamic>;
+                    final msgData =
+                        messages[index].data() as Map<String, dynamic>;
                     final bool isMe = msgData['senderId'] == _currentUserId;
                     final timestamp = msgData['timestamp'] as Timestamp?;
-                    
+
                     String time = "Just now";
                     if (timestamp != null) {
                       final date = timestamp.toDate();
-                      time = "${date.hour}:${date.minute.toString().padLeft(2, '0')}";
+                      time =
+                          "${date.hour}:${date.minute.toString().padLeft(2, '0')}";
                     }
 
                     return Align(
-                      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                      alignment: isMe
+                          ? Alignment.centerRight
+                          : Alignment.centerLeft,
                       child: Container(
                         margin: const EdgeInsets.only(bottom: 16),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
                         decoration: BoxDecoration(
-                          color: isMe ? Colors.grey.shade400 : Colors.grey.shade200,
+                          color: isMe
+                              ? Colors.grey.shade400
+                              : Colors.grey.shade200,
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Column(
-                          crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                          crossAxisAlignment: isMe
+                              ? CrossAxisAlignment.end
+                              : CrossAxisAlignment.start,
                           children: [
                             Text(msgData['text'] ?? ""),
                             const SizedBox(height: 4),
-                            Text(time, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                            Text(
+                              time,
+                              style: const TextStyle(
+                                fontSize: 10,
+                                color: Colors.grey,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -134,10 +157,10 @@ class _PoliceChatScreenState extends State<PoliceChatScreen> {
                       }
                     },
                   ),
-                )
+                ),
               ],
             ),
-          )
+          ),
         ],
       ),
     );

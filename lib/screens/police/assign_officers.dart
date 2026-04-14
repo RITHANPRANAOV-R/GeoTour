@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/police_service.dart';
 import 'widgets/officer_card.dart';
+import '../../widgets/premium_toast.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AssignOfficersScreen extends StatefulWidget {
@@ -55,20 +56,26 @@ class _AssignOfficersScreenState extends State<AssignOfficersScreen> {
               }
 
               var officers = snapshot.data!.docs;
-              
+
               if (showAvailableOnly) {
                 officers = officers.where((doc) {
                   final data = doc.data() as Map<String, dynamic>;
-                  return data['isAvailable'] == true && data['status'] != 'on_mission';
+                  return data['isAvailable'] == true &&
+                      data['status'] != 'on_mission';
                 }).toList();
               }
 
               if (officers.isEmpty) {
-                return const Center(child: Text("No available officers matched criteria."));
+                return const Center(
+                  child: Text("No available officers matched criteria."),
+                );
               }
 
               return ListView.builder(
-                padding: const EdgeInsets.only(bottom: 100, top: 8), // Padding for nav bar
+                padding: const EdgeInsets.only(
+                  bottom: 100,
+                  top: 8,
+                ), // Padding for nav bar
                 itemCount: officers.length,
                 itemBuilder: (context, index) {
                   final officerDoc = officers[index];
@@ -76,7 +83,9 @@ class _AssignOfficersScreenState extends State<AssignOfficersScreen> {
 
                   return OfficerCard(
                     name: officer['name'] ?? 'Unknown',
-                    rank: officer['badgeNumber'] != null ? "Badge: ${officer['badgeNumber']}" : "Officer",
+                    rank: officer['badgeNumber'] != null
+                        ? "Badge: ${officer['badgeNumber']}"
+                        : "Officer",
                     isAvailable: officer['isAvailable'] ?? false,
                     isOnMission: officer['status'] == 'on_mission',
                     onAssign: () async {
@@ -85,8 +94,11 @@ class _AssignOfficersScreenState extends State<AssignOfficersScreen> {
                         'on_mission',
                       );
                       if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text("Assigned ${officer['name']}")),
+                        PremiumToast.show(
+                          context,
+                          title: "Officer Assigned",
+                          message: "Assigned ${officer['name']}",
+                          type: ToastType.success,
                         );
                       }
                     },

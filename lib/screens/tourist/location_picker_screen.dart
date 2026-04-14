@@ -83,13 +83,13 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
         elevation: 0,
         scrolledUnderElevation: 0,
         shape: Border(
-          bottom: BorderSide(
-            color: Colors.grey.shade200,
-            width: 1,
-          ),
+          bottom: BorderSide(color: Colors.grey.shade200, width: 1),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: Colors.black,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
@@ -168,7 +168,10 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                       colors: [Colors.white, Color(0xFFFAFAFA)],
                     ),
                     borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: const Color(0xFFF1F1F1), width: 1.5),
+                    border: Border.all(
+                      color: const Color(0xFFF1F1F1),
+                      width: 1.5,
+                    ),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withValues(alpha: 0.015),
@@ -210,7 +213,10 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                         colors: [Colors.white, Color(0xFFFAFAFA)],
                       ),
                       borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: const Color(0xFFF1F1F1), width: 1.5),
+                      border: Border.all(
+                        color: const Color(0xFFF1F1F1),
+                        width: 1.5,
+                      ),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.015),

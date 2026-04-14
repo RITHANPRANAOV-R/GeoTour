@@ -74,9 +74,12 @@ class AdminAPIService {
       await http.delete(Uri.parse("$baseUrl/zones/$id"));
 
       // 2. Update Firebase Firestore
-      // Note: We'd need the Firestore document ID to delete specifically. 
+      // Note: We'd need the Firestore document ID to delete specifically.
       // For now, we'll delete by name if id is a mock ID, or implement exact ID sync.
-      final query = await _firestore.collection('zones').where('id', isEqualTo: id).get();
+      final query = await _firestore
+          .collection('zones')
+          .where('id', isEqualTo: id)
+          .get();
       for (var doc in query.docs) {
         await doc.reference.delete();
       }
@@ -107,13 +110,17 @@ class AdminAPIService {
       for (var doc in snapshot.docs) {
         final data = doc.data();
         // Check if user already exists in list (to avoid duplicates)
-        bool exists = allUsers.any((u) => u['id'] == doc.id || u['email'] == data['email']);
+        bool exists = allUsers.any(
+          (u) => u['id'] == doc.id || u['email'] == data['email'],
+        );
         if (!exists) {
           allUsers.add({
             'id': doc.id,
             'name': data['name'] ?? data['email']?.split('@')[0] ?? 'User',
             'email': data['email'],
-            'role': data['activeRole'] ?? (data['roles'] is List ? data['roles'][0] : 'tourist'),
+            'role':
+                data['activeRole'] ??
+                (data['roles'] is List ? data['roles'][0] : 'tourist'),
           });
         }
       }
@@ -135,8 +142,10 @@ class AdminAPIService {
 
       // 2. Update Firebase Firestore
       String role = user['role'] ?? 'tourist';
-      String collection = role == 'admin' ? 'admins' : (role == 'police' ? 'police' : 'tourist');
-      
+      String collection = role == 'admin'
+          ? 'admins'
+          : (role == 'police' ? 'police' : 'tourist');
+
       await _firestore.collection(collection).add({
         ...user,
         'createdAt': FieldValue.serverTimestamp(),
@@ -158,7 +167,10 @@ class AdminAPIService {
       );
 
       // 2. Update Firebase Firestore
-      final query = await _firestore.collection('tourist').where('id', isEqualTo: id).get();
+      final query = await _firestore
+          .collection('tourist')
+          .where('id', isEqualTo: id)
+          .get();
       for (var doc in query.docs) {
         await doc.reference.update(user);
       }
@@ -177,7 +189,10 @@ class AdminAPIService {
       // 2. Update Firebase Firestore
       final collections = ['tourist', 'police', 'admins', 'medical'];
       for (var col in collections) {
-        final query = await _firestore.collection(col).where('id', isEqualTo: id).get();
+        final query = await _firestore
+            .collection(col)
+            .where('id', isEqualTo: id)
+            .get();
         for (var doc in query.docs) {
           await doc.reference.delete();
         }
@@ -209,7 +224,7 @@ class AdminAPIService {
           .collection('incidents')
           .orderBy('timestamp', descending: true)
           .get();
-          
+
       for (var doc in snapshot.docs) {
         final data = doc.data();
         allIncidents.add({
@@ -217,7 +232,9 @@ class AdminAPIService {
           'type': data['riskLevel'] ?? 'Notification',
           'user': data['victimName'] ?? 'Unknown User',
           'details': data['summary'] ?? 'N/A',
-          'timestamp': data['timestamp']?.toDate()?.toIso8601String() ?? DateTime.now().toIso8601String(),
+          'timestamp':
+              data['timestamp']?.toDate()?.toIso8601String() ??
+              DateTime.now().toIso8601String(),
           'officer': data['officerName'] ?? 'System',
         });
       }

@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../../services/geo_service.dart';
 import 'location_picker_screen.dart';
+import '../../widgets/premium_toast.dart';
 
 class MapsScreen extends StatefulWidget {
   const MapsScreen({super.key});
@@ -64,9 +65,12 @@ class _MapsScreenState extends State<MapsScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
+        PremiumToast.show(
           context,
-        ).showSnackBar(const SnackBar(content: Text("Error fetching route")));
+          title: "Routing Error",
+          message: "Unable to calculate route. Check your connection.",
+          type: ToastType.error,
+        );
       }
       setState(() => _isLoadingRoute = false);
     }
@@ -305,12 +309,12 @@ class _MapsScreenState extends State<MapsScreen> {
                           ),
                           ElevatedButton(
                             onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    "Simulation Mode: Keep following the line!",
-                                  ),
-                                ),
+                              PremiumToast.show(
+                                context,
+                                title: "Simulation Active",
+                                message:
+                                    "Mode enabled. Stay on the highlighted path!",
+                                type: ToastType.info,
                               );
                             },
                             style: ElevatedButton.styleFrom(

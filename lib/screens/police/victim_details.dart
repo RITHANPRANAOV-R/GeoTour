@@ -4,6 +4,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../services/police_service.dart';
+import '../../widgets/premium_toast.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart' as http;
@@ -126,9 +127,12 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
+        PremiumToast.show(
           context,
-        ).showSnackBar(SnackBar(content: Text("Error launching maps: $e")));
+          title: "Launch Error",
+          message: "Error launching maps: $e",
+          type: ToastType.error,
+        );
       }
     }
   }
@@ -175,7 +179,11 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
               bottom: BorderSide(color: Colors.grey.shade200, width: 1),
             ),
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black, size: 20),
+              icon: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: Colors.black,
+                size: 20,
+              ),
               onPressed: () => Navigator.pop(context),
             ),
             title: const Text(
@@ -198,7 +206,9 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
                   decoration: BoxDecoration(
                     color: Colors.red.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.red.withValues(alpha: 0.2)),
+                    border: Border.all(
+                      color: Colors.red.withValues(alpha: 0.2),
+                    ),
                   ),
                   child: const Text(
                     "Extreme Risk",
@@ -259,8 +269,8 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
                                             vertical: 4,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: Colors.black.withValues(alpha: 
-                                              0.8,
+                                            color: Colors.black.withValues(
+                                              alpha: 0.8,
                                             ),
                                             borderRadius: BorderRadius.circular(
                                               12,
@@ -435,7 +445,9 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
                           child: ElevatedButton(
                             onPressed: () => _handleAcceptAlert(alertId, user),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF007AFF), // Apple Blue
+                              backgroundColor: const Color(
+                                0xFF007AFF,
+                              ), // Apple Blue
                               foregroundColor: Colors.white,
                               elevation: 0,
                               minimumSize: const Size(double.infinity, 56),
@@ -456,7 +468,9 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
                           child: ElevatedButton(
                             onPressed: () => _showAssignBottomSheet(alertId),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFF2F2F7), // Apple Gray
+                              backgroundColor: const Color(
+                                0xFFF2F2F7,
+                              ), // Apple Gray
                               foregroundColor: Colors.black,
                               elevation: 0,
                               minimumSize: const Size(double.infinity, 56),
@@ -492,16 +506,24 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
                                 ),
                               );
                             },
-                            icon: const Icon(Icons.chat_bubble_rounded, size: 20),
+                            icon: const Icon(
+                              Icons.chat_bubble_rounded,
+                              size: 20,
+                            ),
                             label: const Text(
                               "Chat",
-                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFFEBEEF2),
                               foregroundColor: const Color(0xFF007AFF),
                               elevation: 0,
-                              padding: const EdgeInsets.symmetric(horizontal: 8),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                              ),
                               minimumSize: const Size(0, 56),
                               shape: const StadiumBorder(),
                             ),
@@ -526,13 +548,20 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
                             icon: const Icon(Icons.call_rounded, size: 20),
                             label: const Text(
                               "Call",
-                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFFE8F5E9),
-                              foregroundColor: const Color(0xFF34C759), // iOS Green
+                              foregroundColor: const Color(
+                                0xFF34C759,
+                              ), // iOS Green
                               elevation: 0,
-                              padding: const EdgeInsets.symmetric(horizontal: 8),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                              ),
                               minimumSize: const Size(0, 56),
                               shape: const StadiumBorder(),
                             ),
@@ -547,15 +576,22 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFF34C759).withValues(alpha: 0.3),
+                                color: const Color(
+                                  0xFF34C759,
+                                ).withValues(alpha: 0.3),
                                 blurRadius: 12,
                                 offset: const Offset(0, 4),
                               ),
                             ],
                           ),
                           child: IconButton(
-                            onPressed: () => _handleCompleteMission(alertId, user!, data),
-                            icon: const Icon(Icons.check_rounded, color: Colors.white, size: 28),
+                            onPressed: () =>
+                                _handleCompleteMission(alertId, user!, data),
+                            icon: const Icon(
+                              Icons.check_rounded,
+                              color: Colors.white,
+                              size: 28,
+                            ),
                           ),
                         ),
                       ],
@@ -604,12 +640,18 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
 
     if (mounted) {
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Alert accepted! Mission started.")),
+        PremiumToast.show(
+          context,
+          title: "Alert Accepted",
+          message: "You are active on this mission.",
+          type: ToastType.success,
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Could not accept alert.")),
+        PremiumToast.show(
+          context,
+          title: "Action Failed",
+          message: "Could not accept alert.",
+          type: ToastType.error,
         );
       }
     }
@@ -627,9 +669,12 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
     );
 
     if (mounted) {
-      ScaffoldMessenger.of(
+      PremiumToast.show(
         context,
-      ).showSnackBar(const SnackBar(content: Text("Mission completed.")));
+        title: "Mission Completed",
+        message: "Details have been securely filed.",
+        type: ToastType.success,
+      );
       Navigator.pop(context);
     }
   }
@@ -707,7 +752,8 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
                     separatorBuilder: (context, index) =>
                         const Divider(height: 1, thickness: 0.5),
                     itemBuilder: (context, index) {
-                      final officer = officers[index].data() as Map<String, dynamic>;
+                      final officer =
+                          officers[index].data() as Map<String, dynamic>;
                       return Container(
                         margin: const EdgeInsets.only(bottom: 12),
                         decoration: BoxDecoration(
@@ -716,7 +762,10 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
                           border: Border.all(color: const Color(0xFFF1F1F1)),
                         ),
                         child: ListTile(
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
                           leading: CircleAvatar(
                             radius: 22,
                             backgroundColor: Colors.blue.shade50,
@@ -727,21 +776,32 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
                           ),
                           title: Text(
                             officer['name'] ?? "Unknown",
-                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 16,
+                            ),
                           ),
                           subtitle: Text(
-                            officer['badgeNumber'] != null ? "Badge: ${officer['badgeNumber']}" : "Officer",
-                            style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                            officer['badgeNumber'] != null
+                                ? "Badge: ${officer['badgeNumber']}"
+                                : "Officer",
+                            style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: 13,
+                            ),
                           ),
-                          trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+                          trailing: const Icon(
+                            Icons.arrow_forward_ios_rounded,
+                            size: 16,
+                          ),
                           onTap: () async {
                             final nav = Navigator.of(context);
-                            final messenger = ScaffoldMessenger.of(context);
                             try {
-                              messenger.showSnackBar(
-                                const SnackBar(
-                                  content: Text("Assigning alert..."),
-                                ),
+                              PremiumToast.show(
+                                context,
+                                title: "Assigning",
+                                message: "Assigning alert...",
+                                type: ToastType.info,
                               );
 
                               final success = await _policeService.assignAlert(
@@ -753,31 +813,31 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
                               if (mounted) {
                                 nav.pop(); // Close bottom sheet
                                 if (success) {
-                                  messenger.showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        "Alert assigned successfully!",
-                                      ),
-                                    ),
+                                  PremiumToast.show(
+                                    context,
+                                    title: "Alert Assigned",
+                                    message: "Alert assigned successfully!",
+                                    type: ToastType.success,
                                   );
                                   nav.pop(); // Close details screen
                                 } else {
-                                  messenger.showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
+                                  PremiumToast.show(
+                                    context,
+                                    title: "Assignment Failed",
+                                    message:
                                         "Could not assign alert. It might have been accepted already.",
-                                      ),
-                                    ),
+                                    type: ToastType.error,
                                   );
                                 }
                               }
                             } catch (e) {
                               if (mounted) {
                                 nav.pop();
-                                messenger.showSnackBar(
-                                  SnackBar(
-                                    content: Text("Error: ${e.toString()}"),
-                                  ),
+                                PremiumToast.show(
+                                  context,
+                                  title: "Error",
+                                  message: "Error: ${e.toString()}",
+                                  type: ToastType.error,
                                 );
                               }
                             }
@@ -850,13 +910,18 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
     if (victimId == null) return const SizedBox.shrink();
 
     return FutureBuilder<DocumentSnapshot>(
-      future: FirebaseFirestore.instance.collection('tourists').doc(victimId).get(),
+      future: FirebaseFirestore.instance
+          .collection('tourists')
+          .doc(victimId)
+          .get(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: Padding(
-            padding: EdgeInsets.all(20.0),
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ));
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(20.0),
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          );
         }
 
         final touristData = snapshot.data?.data() as Map<String, dynamic>?;
@@ -878,7 +943,10 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
             Container(
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Colors.white, Color(0xFFFFF9F9)], // Slight medical tint
+                  colors: [
+                    Colors.white,
+                    Color(0xFFFFF9F9),
+                  ], // Slight medical tint
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -911,7 +979,11 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
                       const Divider(height: 32, thickness: 0.5),
                       Row(
                         children: [
-                          Icon(Icons.description_outlined, color: Colors.grey, size: 22),
+                          Icon(
+                            Icons.description_outlined,
+                            color: Colors.grey,
+                            size: 22,
+                          ),
                           const SizedBox(width: 16),
                           Expanded(
                             child: Column(
@@ -919,7 +991,10 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
                               children: [
                                 const Text(
                                   "Medical Report",
-                                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                                  style: TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 12,
+                                  ),
                                 ),
                                 const SizedBox(height: 4),
                                 const Text(
@@ -944,20 +1019,29 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
                                 ),
                               );
                             },
-                            icon: const Icon(Icons.visibility_outlined, color: Colors.blue),
+                            icon: const Icon(
+                              Icons.visibility_outlined,
+                              color: Colors.blue,
+                            ),
                           ),
                           const SizedBox(width: 8),
                           IconButton(
                             onPressed: () {
-                              final isPdf = reportUrl.toLowerCase().contains('.pdf') || reportUrl.contains('/raw/upload/');
-                              final fileName = "Medical_Report_${DateTime.now().millisecondsSinceEpoch}.${isPdf ? 'pdf' : 'jpg'}";
+                              final isPdf =
+                                  reportUrl.toLowerCase().contains('.pdf') ||
+                                  reportUrl.contains('/raw/upload/');
+                              final fileName =
+                                  "Medical_Report_${DateTime.now().millisecondsSinceEpoch}.${isPdf ? 'pdf' : 'jpg'}";
                               FileService.downloadFile(
                                 context: context,
                                 url: reportUrl,
                                 fileName: fileName,
                               );
                             },
-                            icon: const Icon(Icons.download_rounded, color: Colors.blue),
+                            icon: const Icon(
+                              Icons.download_rounded,
+                              color: Colors.blue,
+                            ),
                           ),
                         ],
                       ),

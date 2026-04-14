@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/auth_service.dart';
 import '../../services/user_service.dart';
 import '../../widgets/google_logo.dart';
+import '../../widgets/premium_toast.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -13,8 +14,8 @@ class SignUpScreen extends StatefulWidget {
 
 class _SignUpScreenState extends State<SignUpScreen> {
   String selectedRole = "tourist";
-final emailController = TextEditingController();
-final passwordController = TextEditingController();
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
 
   bool isLoading = false;
   bool _obscurePassword = true;
@@ -25,8 +26,11 @@ final passwordController = TextEditingController();
 
     if (email.isEmpty || password.isEmpty) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Enter email and password")),
+        PremiumToast.show(
+          context,
+          title: "Missing Info",
+          message: "Please enter both an email and a password.",
+          type: ToastType.warning,
         );
       }
       return;
@@ -48,19 +52,25 @@ final passwordController = TextEditingController();
         }
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Signup failed")),
+          PremiumToast.show(
+            context,
+            title: "Signup Error",
+            message: "We couldn't create your account. Please try again.",
+            type: ToastType.error,
           );
         }
       }
     } on FirebaseAuthException catch (e) {
       if (e.code == 'email-already-in-use') {
         // Attempt to sign in and check role compatibility
-        User? user = await AuthService().signInWithEmailPassword(email, password);
+        User? user = await AuthService().signInWithEmailPassword(
+          email,
+          password,
+        );
         if (user != null) {
           final userData = await UserService().getUserMainDoc(user.uid);
           final existingRoles = userData?["roles"] as List<dynamic>? ?? [];
-          
+
           if (existingRoles.contains("police") && selectedRole == "tourist") {
             await UserService().createUserMainDoc(
               uid: user.uid,
@@ -73,32 +83,45 @@ final passwordController = TextEditingController();
           } else {
             setState(() => isLoading = false);
             if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("This account already exists and does not support additional roles.")),
+              PremiumToast.show(
+                context,
+                title: "Account Conflict",
+                message:
+                    "This account already exists and doesn't support the selected role.",
+                type: ToastType.warning,
               );
             }
           }
         } else {
           setState(() => isLoading = false);
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("Email already in use. Please sign in or use a different password.")),
+            PremiumToast.show(
+              context,
+              title: "Email Taken",
+              message: "This email is already in use. Please sign in instead.",
+              type: ToastType.warning,
             );
           }
         }
       } else {
         setState(() => isLoading = false);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Error: ${e.message}")),
+          PremiumToast.show(
+            context,
+            title: "Auth Exception",
+            message: e.message ?? "An authentication error occurred.",
+            type: ToastType.error,
           );
         }
       }
     } catch (e) {
       setState(() => isLoading = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error: $e")),
+        PremiumToast.show(
+          context,
+          title: "System Error",
+          message: e.toString(),
+          type: ToastType.error,
         );
       }
     }
@@ -127,9 +150,10 @@ final passwordController = TextEditingController();
 
     // Existing user: check if they are Police and can add Tourist
     final existingRoles = userData["roles"] as List<dynamic>? ?? [];
-    
-    if (existingRoles.contains("police") && !existingRoles.contains("tourist")) {
-      // If Police, we can still send them to the selection screen but we should handle it there 
+
+    if (existingRoles.contains("police") &&
+        !existingRoles.contains("tourist")) {
+      // If Police, we can still send them to the selection screen but we should handle it there
       // OR specifically ask if they want to add the Tourist role.
       // For now, let's send them to the selection screen to pick Tourist if they want.
       setState(() => isLoading = false);
@@ -145,7 +169,8 @@ final passwordController = TextEditingController();
         }
       } else {
         final role = userData["activeRole"] ?? existingRoles.first;
-        final roleCompletion = userData["roleCompletion"] as Map<String, dynamic>? ?? {};
+        final roleCompletion =
+            userData["roleCompletion"] as Map<String, dynamic>? ?? {};
         final isCompleted = roleCompletion[role] ?? false;
 
         if (mounted) {
@@ -240,7 +265,10 @@ final passwordController = TextEditingController();
                     colors: [Colors.white, Color(0xFFFAFAFA)],
                   ),
                   borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: const Color(0xFFF1F1F1), width: 1.5),
+                  border: Border.all(
+                    color: const Color(0xFFF1F1F1),
+                    width: 1.5,
+                  ),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.015),
@@ -274,10 +302,15 @@ final passwordController = TextEditingController();
                       obscureText: _obscurePassword,
                       decoration: InputDecoration(
                         labelText: "Password",
-                        prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),
+                        prefixIcon: const Icon(
+                          Icons.lock_outline_rounded,
+                          size: 20,
+                        ),
                         suffixIcon: IconButton(
                           icon: Icon(
-                            _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                            _obscurePassword
+                                ? Icons.visibility_outlined
+                                : Icons.visibility_off_outlined,
                             size: 20,
                             color: Colors.grey.shade600,
                           ),
@@ -294,9 +327,18 @@ final passwordController = TextEditingController();
                       initialValue: selectedRole,
                       icon: const Icon(Icons.keyboard_arrow_down_rounded),
                       items: const [
-                        DropdownMenuItem(value: "tourist", child: Text("Tourist")),
-                        DropdownMenuItem(value: "police", child: Text("Police")),
-                        DropdownMenuItem(value: "hospital", child: Text("Hospital")),
+                        DropdownMenuItem(
+                          value: "tourist",
+                          child: Text("Tourist"),
+                        ),
+                        DropdownMenuItem(
+                          value: "police",
+                          child: Text("Police"),
+                        ),
+                        DropdownMenuItem(
+                          value: "hospital",
+                          child: Text("Hospital"),
+                        ),
                       ],
                       onChanged: (value) {
                         setState(() {
@@ -325,8 +367,8 @@ final passwordController = TextEditingController();
                     const SizedBox(height: 16),
                     OutlinedButton.icon(
                       onPressed: isLoading ? null : handleGoogleSignUp,
-                          icon: const GoogleLogoWidget(height: 24),
-                          label: const Text("Continue with Google"),
+                      icon: const GoogleLogoWidget(height: 24),
+                      label: const Text("Continue with Google"),
                     ),
                     const SizedBox(height: 24),
                     Row(
@@ -347,12 +389,12 @@ final passwordController = TextEditingController();
                               color: Colors.black,
                             ),
                           ),
-                        )
+                        ),
                       ],
                     ),
                   ],
                 ),
-              )
+              ),
             ],
           ),
         ),

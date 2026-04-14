@@ -7,6 +7,13 @@ import '../models/alert_model.dart';
 import 'alert_service.dart';
 import 'police_service.dart';
 
+enum LocationStatus {
+  enabled,
+  serviceDisabled,
+  permissionDenied,
+  permissionDeniedForever,
+}
+
 class GeoService extends ChangeNotifier {
   static final GeoService _instance = GeoService._internal();
   factory GeoService() => _instance;
@@ -46,57 +53,70 @@ class GeoService extends ChangeNotifier {
       "center": LatLng(13.0700, 80.2600),
       "radius": 400,
       "severity": AlertSeverity.medium,
-    }
+    },
   ];
 
-  Future<bool> checkPermissions() async {
+  Future<LocationStatus> checkPermissions() async {
     bool serviceEnabled;
     LocationPermission permission;
 
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) return false;
+    if (!serviceEnabled) return LocationStatus.serviceDisabled;
 
     permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) return false;
+      if (permission == LocationPermission.denied)
+        return LocationStatus.permissionDenied;
     }
-    
-    if (permission == LocationPermission.deniedForever) return false;
 
-    return true;
+    if (permission == LocationPermission.deniedForever)
+      return LocationStatus.permissionDeniedForever;
+
+    return LocationStatus.enabled;
   }
 
-  void startMonitoring() async {
-    if (_isMonitoring) return;
-    
-    bool hasPermission = await checkPermissions();
-    if (!hasPermission) return;
+  Future<void> openLocationSettings() async {
+    await Geolocator.openLocationSettings();
+  }
+
+  Future<void> openAppSettings() async {
+    await Geolocator.openAppSettings();
+  }
+
+  Future<LocationStatus> startMonitoring() async {
+    if (_isMonitoring) return LocationStatus.enabled;
+
+    LocationStatus status = await checkPermissions();
+    if (status != LocationStatus.enabled) return status;
 
     _isMonitoring = true;
-    
-    _positionStream = Geolocator.getPositionStream(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 10,
-      ),
-    ).listen((Position position) {
-      _currentPosition = position;
-      notifyListeners();
 
-      // Live Track Victim: Update active alert location in Firestore
-      final activeAlertId = AlertService().activeAlertId;
-      if (activeAlertId != null) {
-        PoliceService().updateAlertLocation(
-          activeAlertId,
-          lat: position.latitude,
-          lng: position.longitude,
-          userId: FirebaseAuth.instance.currentUser?.uid,
-        );
-      }
+    _positionStream =
+        Geolocator.getPositionStream(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+            distanceFilter: 10,
+          ),
+        ).listen((Position position) {
+          _currentPosition = position;
+          notifyListeners();
 
-      _checkRiskZones(position);
-    });
+          // Live Track Victim: Update active alert location in Firestore
+          final activeAlertId = AlertService().activeAlertId;
+          if (activeAlertId != null) {
+            PoliceService().updateAlertLocation(
+              activeAlertId,
+              lat: position.latitude,
+              lng: position.longitude,
+              userId: FirebaseAuth.instance.currentUser?.uid,
+            );
+          }
+
+          _checkRiskZones(position);
+        });
+
+    return LocationStatus.enabled;
   }
 
   void _checkRiskZones(Position position) {
@@ -113,12 +133,12 @@ class GeoService extends ChangeNotifier {
       if (distance <= zone["radius"]) {
         inAnyZone = true;
         final zoneId = zone["id"] as String;
-        
+
         if (_lastZoneId != zoneId) {
           _lastZoneId = zoneId;
           final name = zone["name"] as String;
           final severity = zone["severity"] as AlertSeverity;
-          
+
           // Add to local AlertService
           AlertService().addAlert(
             title: name,
@@ -126,7 +146,9 @@ class GeoService extends ChangeNotifier {
             severity: severity,
             lat: position.latitude,
             lng: position.longitude,
-            notifyPolice: severity == AlertSeverity.extreme || severity == AlertSeverity.high,
+            notifyPolice:
+                severity == AlertSeverity.extreme ||
+                severity == AlertSeverity.high,
           );
 
           onRiskZoneEntered?.call(name);

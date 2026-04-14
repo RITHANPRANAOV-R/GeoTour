@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:latlong2/latlong.dart';
 import '../../services/user_service.dart';
 import '../tourist/location_picker_screen.dart';
+import '../../widgets/premium_toast.dart';
 
 class HospitalProfileSetupScreen extends StatefulWidget {
   const HospitalProfileSetupScreen({super.key});
@@ -74,12 +75,12 @@ class _HospitalProfileSetupScreenState
         licenseController.text.isEmpty ||
         erPhoneController.text.isEmpty ||
         addressController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            "Please fill in essential fields: Name, License, ER Number, and Address",
-          ),
-        ),
+      PremiumToast.show(
+        context,
+        title: "Facility Validation",
+        message:
+            "Please fill in essential fields: Name, License, ER Number, and Address.",
+        type: ToastType.warning,
       );
       return;
     }
@@ -122,8 +123,11 @@ class _HospitalProfileSetupScreenState
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Error saving hospital profile: $e")),
+          PremiumToast.show(
+            context,
+            title: "Registration Error",
+            message: "Unable to save facility details: $e",
+            type: ToastType.error,
           );
         }
       }

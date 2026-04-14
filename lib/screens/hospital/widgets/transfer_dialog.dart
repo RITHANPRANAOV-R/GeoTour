@@ -40,7 +40,8 @@ class _TransferDialogState extends State<TransferDialog> {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                final hospitals = snapshot.data
+                final hospitals =
+                    snapshot.data
                         ?.where((h) => h.uid != widget.currentHospitalId)
                         .toList() ??
                     [];
@@ -51,7 +52,10 @@ class _TransferDialogState extends State<TransferDialog> {
                     child: Center(
                       child: Text(
                         "No other active hospitals found.",
-                        style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   );
@@ -67,7 +71,9 @@ class _TransferDialogState extends State<TransferDialog> {
                     return ListTile(
                       contentPadding: EdgeInsets.zero,
                       leading: CircleAvatar(
-                        backgroundColor: isSelected ? Colors.red : Colors.grey.shade100,
+                        backgroundColor: isSelected
+                            ? Colors.red
+                            : Colors.grey.shade100,
                         child: Icon(
                           Icons.local_hospital_rounded,
                           color: isSelected ? Colors.white : Colors.red,
@@ -77,7 +83,9 @@ class _TransferDialogState extends State<TransferDialog> {
                       title: Text(
                         hospital.name,
                         style: TextStyle(
-                          fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                          fontWeight: isSelected
+                              ? FontWeight.w800
+                              : FontWeight.w600,
                           fontSize: 14,
                         ),
                       ),
@@ -104,7 +112,10 @@ class _TransferDialogState extends State<TransferDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text("Cancel", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+          child: const Text(
+            "Cancel",
+            style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
+          ),
         ),
         ElevatedButton(
           onPressed: _selectedHospital == null
@@ -114,7 +125,10 @@ class _TransferDialogState extends State<TransferDialog> {
             backgroundColor: Colors.red,
             padding: const EdgeInsets.symmetric(horizontal: 24),
           ),
-          child: const Text("Transfer", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          child: const Text(
+            "Transfer",
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
         ),
       ],
     );

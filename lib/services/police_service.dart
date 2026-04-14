@@ -37,10 +37,10 @@ class PoliceService {
         .where('isAvailable', isEqualTo: true)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs
-          .map((doc) => OfficerModel.fromFirestore(doc))
-          .toList();
-    });
+          return snapshot.docs
+              .map((doc) => OfficerModel.fromFirestore(doc))
+              .toList();
+        });
   }
 
   Future<void> updateOfficerStatus(String id, String status) async {
@@ -111,7 +111,7 @@ class PoliceService {
 
       final alertData = alertSnapshot.data() as Map<String, dynamic>;
       final String? currentAcceptedBy = alertData['acceptedBy'];
-      
+
       if (currentAcceptedBy != null && currentAcceptedBy.isNotEmpty) {
         return false; // Already accepted by someone else
       }
@@ -312,7 +312,7 @@ class PoliceService {
         .doc(globalDoc.id)
         .set(alertData);
 
-    // 3. Officer specific targeted alert? 
+    // 3. Officer specific targeted alert?
     // Usually officer listens to global 'alerts' and filters by targetedOfficerId or priority.
   }
 }

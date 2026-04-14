@@ -14,6 +14,7 @@ import '../../models/officer_model.dart';
 import 'police_chat_screen.dart';
 import '../common/call_screen.dart';
 import '../../widgets/premium_toast.dart';
+import '../../widgets/premium_dialog.dart';
 
 class EmergencyResponseScreen extends StatefulWidget {
   const EmergencyResponseScreen({super.key});
@@ -95,11 +96,11 @@ class _EmergencyResponseScreenState extends State<EmergencyResponseScreen>
     );
 
     if (id == null && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Failed to trigger SOS. Check your connection."),
-          backgroundColor: Colors.red,
-        ),
+      PremiumToast.show(
+        context,
+        title: "SOS Failed",
+        message: "Failed to trigger broadcast. Check your network connection.",
+        type: ToastType.error,
       );
       return;
     }
@@ -117,25 +118,40 @@ class _EmergencyResponseScreenState extends State<EmergencyResponseScreen>
 
     final pos = GeoService().currentPosition;
     if (pos == null) {
-      PremiumToast.show(
-        context,
-        title: "Location Unavailable",
-        message: "Waiting for your GPS coordinates...",
-        type: ToastType.warning,
-      );
+      final status = await GeoService().startMonitoring();
+      if (status != LocationStatus.enabled) {
+        if (mounted) _handleLocationStatus(status);
+        return;
+      }
+    }
+
+    // Check again
+    final finalPos = GeoService().currentPosition;
+    if (finalPos == null) {
+      if (mounted) {
+        PremiumToast.show(
+          context,
+          title: "Waiting for GPS",
+          message: "Please ensure your location is enabled to dispatch help.",
+          type: ToastType.warning,
+        );
+      }
       return;
     }
+
+    final posData = finalPos; // use the one we just verified
 
     // Get actual name and medical info from the 'tourists' collection
     final touristDoc = await FirebaseFirestore.instance
         .collection('tourists')
         .doc(user.uid)
         .get();
-    
+
     final touristData = touristDoc.data();
     final m = touristData?['medicalInfo'] as Map<String, dynamic>?;
-    
-    final victimName = touristData?['username'] ?? user.displayName ?? "Tourist";
+
+    final victimName =
+        touristData?['username'] ?? user.displayName ?? "Tourist";
     final medicalSummary =
         "Blood: ${m?['bloodGroup'] ?? 'N/A'}, Meds: ${m?['medications'] ?? 'None'}, Allergies: ${m?['allergies'] ?? 'None'}";
 
@@ -158,7 +174,7 @@ class _EmergencyResponseScreenState extends State<EmergencyResponseScreen>
             .collection('hospitals')
             .limit(1)
             .get();
-            
+
         if (anyHospital.docs.isEmpty) {
           throw Exception("No hospitals registered in the system.");
         }
@@ -168,8 +184,8 @@ class _EmergencyResponseScreenState extends State<EmergencyResponseScreen>
       await HospitalService().triggerHospitalSOS(
         victimId: user.uid,
         victimName: victimName,
-        lat: pos.latitude,
-        lng: pos.longitude,
+        lat: posData.latitude,
+        lng: posData.longitude,
         medicalInfo: medicalSummary,
         hospitalId: nearestHospitalId,
         riskLevel: riskLevel,
@@ -179,7 +195,8 @@ class _EmergencyResponseScreenState extends State<EmergencyResponseScreen>
         PremiumToast.show(
           context,
           title: "Medical Alert Dispatched",
-          message: "Emergency broadcast sent to the nearest available hospital.",
+          message:
+              "Emergency broadcast sent to the nearest available hospital.",
           type: ToastType.error,
         );
         setState(() => sosTriggered = true);
@@ -202,12 +219,24 @@ class _EmergencyResponseScreenState extends State<EmergencyResponseScreen>
 
     final pos = GeoService().currentPosition;
     if (pos == null) {
-      PremiumToast.show(
-        context,
-        title: "Location Error",
-        message: "Enable GPS to broadcast your position.",
-        type: ToastType.warning,
-      );
+      final status = await GeoService().startMonitoring();
+      if (status != LocationStatus.enabled) {
+        if (mounted) _handleLocationStatus(status);
+        return;
+      }
+    }
+
+    // Check again after (potentially) re-enabling
+    final finalPos = GeoService().currentPosition;
+    if (finalPos == null) {
+      if (mounted) {
+        PremiumToast.show(
+          context,
+          title: "Waiting for GPS",
+          message: "Please ensure your location is enabled to dispatch help.",
+          type: ToastType.warning,
+        );
+      }
       return;
     }
 
@@ -217,7 +246,7 @@ class _EmergencyResponseScreenState extends State<EmergencyResponseScreen>
           .collection('tourists')
           .doc(user.uid)
           .get();
-      
+
       final touristData = touristDoc.data();
       final m = touristData?['medicalInfo'] as Map<String, dynamic>?;
       final medicalSummary =
@@ -233,8 +262,8 @@ class _EmergencyResponseScreenState extends State<EmergencyResponseScreen>
       await PoliceService().triggerPoliceSOS(
         victimId: user.uid,
         victimName: touristData?['username'] ?? user.displayName ?? "Tourist",
-        lat: pos.latitude,
-        lng: pos.longitude,
+        lat: finalPos.latitude,
+        lng: finalPos.longitude,
         threat: "Emergency SOS: $riskLevel Risk",
         riskLevel: riskLevel,
         medicalInfo: medicalSummary,
@@ -246,8 +275,8 @@ class _EmergencyResponseScreenState extends State<EmergencyResponseScreen>
           context,
           title: "Police Alert Dispatched",
           message: nearestOfficerId != null
-                  ? "Emergency request sent to the nearest patrol unit."
-                  : "Emergency request broadcasted to all active units.",
+              ? "Emergency request sent to the nearest patrol unit."
+              : "Emergency request broadcasted to all active units.",
           type: ToastType.error,
         );
         setState(() => sosTriggered = true);
@@ -283,7 +312,9 @@ class _EmergencyResponseScreenState extends State<EmergencyResponseScreen>
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.85),
                   borderRadius: BorderRadius.circular(28),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.5)),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.5),
+                  ),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.1),
@@ -363,7 +394,7 @@ class _EmergencyResponseScreenState extends State<EmergencyResponseScreen>
                           ),
                         ),
                       );
-                    }).toList(),
+                    }),
                   ],
                 ),
               ),
@@ -1158,6 +1189,45 @@ class _EmergencyResponseScreenState extends State<EmergencyResponseScreen>
           ],
         ),
       ),
+    );
+  }
+
+  void _handleLocationStatus(LocationStatus status) {
+    String title = "Location Error";
+    String message = "";
+    VoidCallback? onAction;
+
+    switch (status) {
+      case LocationStatus.serviceDisabled:
+        title = "GPS is OFF";
+        message = "Safety features require GPS. Turn it on now?";
+        onAction = () => GeoService().openLocationSettings();
+        break;
+      case LocationStatus.permissionDenied:
+        message = "Permission is needed to find your location.";
+        onAction = () => GeoService().startMonitoring();
+        break;
+      case LocationStatus.permissionDeniedForever:
+        title = "Permission Blocked";
+        message = "Location is blocked. Please fix in settings.";
+        onAction = () => GeoService().openAppSettings();
+        break;
+      default:
+        return;
+    }
+
+    PremiumDialog.show(
+      context,
+      title: title,
+      message: message,
+      primaryLabel: "FIX NOW",
+      onPrimary: onAction,
+      icon: status == LocationStatus.serviceDisabled
+          ? Icons.location_disabled_rounded
+          : Icons.gpp_maybe_rounded,
+      accentColor: status == LocationStatus.serviceDisabled
+          ? Colors.orange
+          : Colors.red,
     );
   }
 }

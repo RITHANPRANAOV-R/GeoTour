@@ -6,6 +6,8 @@ import '../../services/auth_service.dart';
 // However, I will check if any manual imports need updating.
 import '../../services/user_service.dart';
 import '../../widgets/google_logo.dart';
+import '../../widgets/premium_input_dialog.dart';
+import '../../widgets/premium_toast.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -33,8 +35,11 @@ class _SignInScreenState extends State<SignInScreen> {
     final password = passwordController.text.trim();
 
     if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Enter email and password")),
+      PremiumToast.show(
+        context,
+        title: "Missing Information",
+        message: "Please enter both your email and password.",
+        type: ToastType.warning,
       );
       return;
     }
@@ -46,8 +51,11 @@ class _SignInScreenState extends State<SignInScreen> {
     if (user == null) {
       setState(() => isLoading = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Invalid login")),
+        PremiumToast.show(
+          context,
+          title: "Login Failed",
+          message: "The email or password you entered is incorrect.",
+          type: ToastType.error,
         );
       }
       return;
@@ -72,7 +80,8 @@ class _SignInScreenState extends State<SignInScreen> {
       }
     } else {
       final role = userData["activeRole"] ?? roles.first;
-      final roleCompletion = userData["roleCompletion"] as Map<String, dynamic>? ?? {};
+      final roleCompletion =
+          userData["roleCompletion"] as Map<String, dynamic>? ?? {};
       final isCompleted = roleCompletion[role] ?? false;
       if (mounted) {
         _navigateBasedOnRoleAndCompletion(role, isCompleted);
@@ -88,8 +97,11 @@ class _SignInScreenState extends State<SignInScreen> {
     if (user == null) {
       setState(() => isLoading = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Google login cancelled")),
+        PremiumToast.show(
+          context,
+          title: "Google Sync Cancelled",
+          message: "Google login was cancelled by the user.",
+          type: ToastType.info,
         );
       }
       return;
@@ -114,7 +126,8 @@ class _SignInScreenState extends State<SignInScreen> {
       }
     } else {
       final role = userData["activeRole"] ?? roles.first;
-      final roleCompletion = userData["roleCompletion"] as Map<String, dynamic>? ?? {};
+      final roleCompletion =
+          userData["roleCompletion"] as Map<String, dynamic>? ?? {};
       final isCompleted = roleCompletion[role] ?? false;
       if (mounted) {
         _navigateBasedOnRoleAndCompletion(role, isCompleted);
@@ -154,6 +167,53 @@ class _SignInScreenState extends State<SignInScreen> {
           break;
         case "admin":
           Navigator.pushReplacementNamed(context, "/adminProfileSetup");
+          break;
+      }
+    }
+  }
+
+  Future<void> _showForgotPasswordDialog() async {
+    final result = await PremiumInputDialog.show<PasswordResetResult>(
+      context,
+      title: "Reset Password",
+      message:
+          "Enter your registered email address to receive a password reset link.",
+      primaryLabel: "SEND LINK",
+      hintText: "example@email.com",
+      icon: Icons.key_rounded,
+      accentColor: Colors.black,
+      keyboardType: TextInputType.emailAddress,
+      onPrimary: (email) async {
+        return await AuthService().sendPasswordResetEmail(email);
+      },
+    );
+
+    if (result != null && mounted) {
+      switch (result) {
+        case PasswordResetResult.success:
+          PremiumToast.show(
+            context,
+            title: "Email Sent",
+            message: "Check your inbox for the password reset instructions.",
+            type: ToastType.success,
+          );
+          break;
+        case PasswordResetResult.notFound:
+          PremiumToast.show(
+            context,
+            title: "Not Registered",
+            message: "This email is not registered with GeoTour.",
+            type: ToastType.warning,
+          );
+          break;
+        case PasswordResetResult.error:
+          PremiumToast.show(
+            context,
+            title: "Request Failed",
+            message:
+                "We couldn't process your reset request. Check your connection.",
+            type: ToastType.error,
+          );
           break;
       }
     }
@@ -202,7 +262,10 @@ class _SignInScreenState extends State<SignInScreen> {
                     colors: [Colors.white, Color(0xFFFAFAFA)],
                   ),
                   borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: const Color(0xFFF1F1F1), width: 1.5),
+                  border: Border.all(
+                    color: const Color(0xFFF1F1F1),
+                    width: 1.5,
+                  ),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.015),
@@ -236,10 +299,15 @@ class _SignInScreenState extends State<SignInScreen> {
                       obscureText: _obscurePassword,
                       decoration: InputDecoration(
                         labelText: "Password",
-                        prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),
+                        prefixIcon: const Icon(
+                          Icons.lock_outline_rounded,
+                          size: 20,
+                        ),
                         suffixIcon: IconButton(
                           icon: Icon(
-                            _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                            _obscurePassword
+                                ? Icons.visibility_outlined
+                                : Icons.visibility_off_outlined,
                             size: 20,
                             color: Colors.grey.shade600,
                           ),
@@ -265,7 +333,7 @@ class _SignInScreenState extends State<SignInScreen> {
                           ),
                         ),
                         TextButton(
-                          onPressed: () {},
+                          onPressed: _showForgotPasswordDialog,
                           child: const Text("Forgot Password?"),
                         ),
                       ],
@@ -309,12 +377,12 @@ class _SignInScreenState extends State<SignInScreen> {
                               color: Colors.black,
                             ),
                           ),
-                        )
+                        ),
                       ],
                     ),
                   ],
                 ),
-              )
+              ),
             ],
           ),
         ),

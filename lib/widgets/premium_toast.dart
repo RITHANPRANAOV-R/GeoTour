@@ -88,13 +88,15 @@ class _PremiumToastWidgetState extends State<_PremiumToastWidget>
       reverseDuration: const Duration(milliseconds: 400),
     );
 
-    _slideAnimation = Tween<double>(begin: -100.0, end: 16.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
-    );
+    _slideAnimation = Tween<double>(
+      begin: -100.0,
+      end: 16.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
 
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeIn),
-    );
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeIn));
 
     _controller.forward();
 
@@ -125,10 +127,7 @@ class _PremiumToastWidgetState extends State<_PremiumToastWidget>
         builder: (context, child) {
           return Transform.translate(
             offset: Offset(0, _slideAnimation.value),
-            child: Opacity(
-              opacity: _fadeAnimation.value,
-              child: child,
-            ),
+            child: Opacity(opacity: _fadeAnimation.value, child: child),
           );
         },
         child: Material(
