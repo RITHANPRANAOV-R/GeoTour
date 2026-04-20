@@ -1,7 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../../services/user_service.dart';
 
 class PoliceDashboardChoiceScreen extends StatelessWidget {
   const PoliceDashboardChoiceScreen({super.key});
+
+  Future<void> _handleTouristTap(BuildContext context) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final userData = await UserService().getUserMainDoc(user.uid);
+    final roleCompletion =
+        userData?["roleCompletion"] as Map<String, dynamic>? ?? {};
+    final roles = userData?["roles"] as List<dynamic>? ?? [];
+
+    // If tourist role doesn't exist yet OR profile is not completed, go to setup
+    final bool hasTouristRole = roles.contains("tourist");
+    final bool touristCompleted = roleCompletion["tourist"] ?? false;
+
+    if (!context.mounted) return;
+
+    if (!hasTouristRole || !touristCompleted) {
+      Navigator.pushReplacementNamed(context, "/touristProfileSetup");
+    } else {
+      Navigator.pushReplacementNamed(context, "/touristHome");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -53,8 +77,7 @@ class PoliceDashboardChoiceScreen extends StatelessWidget {
                 subtitle:
                     "View geo-fence zones, safety tips, and travel intelligence.",
                 icon: Icons.explore_rounded,
-                onTap: () =>
-                    Navigator.pushReplacementNamed(context, "/touristHome"),
+                onTap: () => _handleTouristTap(context),
                 isPrimary: false,
               ),
             ],

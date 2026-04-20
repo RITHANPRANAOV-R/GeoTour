@@ -130,6 +130,12 @@ class _TouristProfileSetupScreenState extends State<TouristProfileSetupScreen> {
         "updatedAt": DateTime.now().toIso8601String(),
       }, SetOptions(merge: true));
 
+      // Ensure tourist role exists in roles array and mark profile complete
+      await FirebaseFirestore.instance.collection("users").doc(uid).set({
+        "roles": FieldValue.arrayUnion(["tourist"]),
+        "activeRole": "tourist",
+      }, SetOptions(merge: true));
+
       await UserService().updateProfileCompleted(uid, true, "tourist");
 
       if (!mounted) return;
