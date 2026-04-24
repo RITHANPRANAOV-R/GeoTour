@@ -30,7 +30,7 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final victimId = widget.alertData['victimId'];
+    final victimId = widget.alertData['userId'] ?? widget.alertData['victimId'];
     final status = widget.alertData['status'] ?? 'pending';
     final riskLevel = widget.alertData['riskLevel'] ?? 'High';
 
@@ -88,7 +88,8 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
           final medicalInfo =
               touristData['medicalInfo'] as Map<String, dynamic>? ?? {};
           final phone = touristData['phone'] ?? 'N/A';
-          final emergencyContacts = touristData['emergencyContacts'] ?? 'N/A';
+          final er = touristData['emergencyContact'] as Map<String, dynamic>?;
+          final emergencyPhone = er?['phone'] ?? 'N/A';
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(24),
@@ -108,6 +109,20 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
                   "Patient Name",
                   widget.alertData['victimName'] ?? 'Unknown',
                 ),
+                if (widget.alertData['touristId'] != null)
+                  _buildDetailField(
+                    "Tourist ID",
+                    widget.alertData['touristId'],
+                  ),
+                if (touristData['touristId'] != null && widget.alertData['touristId'] == null)
+                   _buildDetailField(
+                    "Tourist ID",
+                    touristData['touristId'],
+                  ),
+                _buildDetailField(
+                  "Blood Group",
+                  medicalInfo['bloodGroup'] ?? 'N/A',
+                ),
                 _buildDetailField(
                   "Current Medications",
                   medicalInfo['medications'] ?? 'N/A',
@@ -117,7 +132,7 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
                   medicalInfo['allergies'] ?? 'N/A',
                 ),
                 _buildDetailField(
-                  "Surgeries",
+                  "Past Surgeries / Conditions",
                   medicalInfo['surgeries'] ?? 'N/A',
                 ),
                 _buildReportField(
@@ -125,7 +140,7 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
                   medicalInfo['healthReportFile'] ?? 'N/A',
                 ),
                 _buildDetailField("Contact Number", phone, isPhone: true),
-                _buildDetailField("Emergency Contacts", emergencyContacts),
+                _buildDetailField("Emergency Phone", emergencyPhone, isPhone: true),
                 const SizedBox(height: 40),
                 if (status == 'pending') ...[
                   ElevatedButton(

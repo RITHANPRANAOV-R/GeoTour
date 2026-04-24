@@ -27,7 +27,7 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
   // Controllers
   final TextEditingController nameController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
-  final TextEditingController travelIdController = TextEditingController();
+  final TextEditingController touristIdController = TextEditingController();
 
   final TextEditingController medicationsController = TextEditingController();
   final TextEditingController allergiesController = TextEditingController();
@@ -76,7 +76,7 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
         setState(() {
           nameController.text = data['username'] ?? user.displayName ?? "";
           phoneController.text = data['phone'] ?? "";
-          travelIdController.text = data['travelId'] ?? "";
+          touristIdController.text = data['touristId'] ?? "";
 
           if (m != null) {
             bloodGroup = m['bloodGroup'] ?? "O+";
@@ -103,7 +103,7 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
     int totalPoints = 0;
     if (nameController.text.isNotEmpty) totalPoints += 15;
     if (phoneController.text.isNotEmpty) totalPoints += 15;
-    if (travelIdController.text.isNotEmpty) totalPoints += 10;
+    if (touristIdController.text.isNotEmpty) totalPoints += 10;
     if (medicationsController.text.isNotEmpty ||
         allergiesController.text.isNotEmpty)
       totalPoints += 20;
@@ -177,7 +177,7 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
             .set({
               'username': nameController.text.trim(),
               'phone': phoneController.text.trim(),
-              'travelId': travelIdController.text.trim(),
+              'touristId': touristIdController.text.trim(),
               'medicalInfo': {
                 'bloodGroup': bloodGroup,
                 'medications': medicationsController.text.trim(),
@@ -283,9 +283,10 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
                 keyboardType: TextInputType.phone,
               ),
               _buildNativeInput(
-                "Government Travel ID",
-                travelIdController,
-                Icons.card_membership_rounded,
+                "Tourist ID (Batch No)",
+                touristIdController,
+                Icons.badge_rounded,
+                readOnly: true,
               ),
             ]),
             const SizedBox(height: 20),
@@ -405,7 +406,7 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
         border: Border.all(color: const Color(0xFFF1F1F1), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.015),
+            color: Colors.black.withValues(alpha: 0.015),
             blurRadius: 24,
             offset: const Offset(0, 10),
           ),
@@ -428,13 +429,13 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
                 ),
                 decoration: BoxDecoration(
                   color: isActive
-                      ? Colors.green.withOpacity(0.1)
-                      : Colors.grey.withOpacity(0.1),
+                      ? Colors.green.withValues(alpha: 0.1)
+                      : Colors.grey.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: isActive
-                        ? Colors.green.withOpacity(0.2)
-                        : Colors.grey.withOpacity(0.2),
+                        ? Colors.green.withValues(alpha: 0.2)
+                        : Colors.grey.withValues(alpha: 0.2),
                   ),
                 ),
                 child: Row(
@@ -522,7 +523,7 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
         border: Border.all(color: const Color(0xFFF1F1F1), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.015),
+            color: Colors.black.withValues(alpha: 0.015),
             blurRadius: 24,
             offset: const Offset(0, 10),
           ),
@@ -536,7 +537,7 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
+                  color: Colors.blue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(icon, color: Colors.blue, size: 20),
@@ -574,6 +575,7 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
     TextInputType? keyboardType,
     int maxLines = 1,
     String? hint,
+    bool readOnly = false,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -590,15 +592,20 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
-            color: const Color(0xFFF8F9FA),
+            color: readOnly ? Colors.grey.shade100 : const Color(0xFFF8F9FA),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: const Color(0xFFEEEEEE)),
           ),
           child: TextField(
             controller: controller,
             maxLines: maxLines,
+            readOnly: readOnly,
             keyboardType: keyboardType,
-            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 14,
+              color: readOnly ? Colors.grey : Colors.black,
+            ),
             decoration: InputDecoration(
               isDense: true,
               hintText: hint,

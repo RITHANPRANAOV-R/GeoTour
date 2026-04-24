@@ -19,6 +19,7 @@ import '../../widgets/premium_toast.dart';
 import '../../widgets/premium_dialog.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../widgets/app_drawer.dart';
+import '../../services/notification_service.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -41,6 +42,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     setState(() {
       selectedIndex = index;
     });
+    if (index == 1) {
+      NotificationService().clearBadge();
+    }
   }
 
   @override
@@ -236,6 +240,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   LatLng? _endPoint;
   final List<LatLng?> _stopPoints = [];
 
+  bool _isAddingTrip = false;
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
@@ -264,7 +270,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         );
       }
     };
-    _handleStartMonitoring(isInitial: true);
+    _handleStartMonitoring(isInitial: true).then((_) {
+       _centerMapOnUser();
+    });
   }
 
   @override
@@ -346,7 +354,20 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     );
   }
 
+  // Syncs background points, doesn't force camera movements
   void _updateMapCenter() {
+    final pos = GeoService().currentPosition;
+    if (pos != null && mounted) {
+      if (_startController.text == "Current Location") {
+        setState(() {
+          _startPoint = LatLng(pos.latitude, pos.longitude);
+        });
+      }
+    }
+  }
+
+  // Force jumps the camera to the user explicitly
+  void _centerMapOnUser() {
     final pos = GeoService().currentPosition;
     if (pos != null && mounted) {
       _mapController.move(LatLng(pos.latitude, pos.longitude), 13.0);
@@ -605,33 +626,115 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                             "Your location",
                             style: TextStyle(color: Colors.grey, fontSize: 13),
                           ),
-                          GestureDetector(
-                            onTap: () => _handleStartMonitoring(),
-                            child: const Icon(
-                              Icons.refresh,
-                              size: 20,
-                              color: Colors.grey,
+                          Row(
+                            children: [
+                              Text(
+                                "Testing Mode",
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: GeoService().isManualOverride ? Colors.redAccent : Colors.grey,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Transform.scale(
+                                scale: 0.65,
+                                child: Switch(
+                                  value: GeoService().isManualOverride,
+                                  activeColor: Colors.redAccent,
+                                  onChanged: (value) {
+                                    if (value) {
+                                      GeoService().setManualOverrideStatus(true);
+                                      PremiumToast.show(
+                                        context,
+                                        title: "Spoofing Enabled",
+                                        message: "Hardware GPS disabled. Tap 'Explore Map' to drop testing pins.",
+                                        type: ToastType.info,
+                                      );
+                                    } else {
+                                      GeoService().setManualOverrideStatus(false);
+                                      _handleStartMonitoring();
+                                      _centerMapOnUser();
+                                      PremiumToast.show(
+                                        context,
+                                        title: "Live Tracking Resumed",
+                                        message: "Hardware GPS tracking enabled.",
+                                        type: ToastType.success,
+                                      );
+                                    }
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              GestureDetector(
+                                onTap: () {
+                                  GeoService().resetManualOverride();
+                                  _handleStartMonitoring();
+                                  _centerMapOnUser();
+                                  if (mounted) {
+                                    PremiumToast.show(
+                                      context,
+                                      title: "Location Refreshed",
+                                      message: "Re-scanning current GPS coordinates...",
+                                      type: ToastType.success,
+                                    );
+                                  }
+                                },
+                                child: const Icon(
+                                  Icons.my_location_rounded,
+                                  size: 20,
+                                  color: Colors.blueAccent,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          const Icon(Icons.radar_rounded, size: 14, color: Colors.grey),
+                          const SizedBox(width: 4),
+                          Text(
+                            "Safe Range: ${GeoService().warningRange.toInt()}m",
+                            style: const TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold),
+                          ),
+                          Expanded(
+                            child: Slider(
+                              value: GeoService().warningRange,
+                              min: 100,
+                              max: 2000,
+                              divisions: 19,
+                              activeColor: Colors.blueAccent.withValues(alpha: 0.5),
+                              onChanged: (val) {
+                                GeoService().setWarningRange(val);
+                              },
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
-                      // Real Map Area
+                      const SizedBox(height: 8),
                       GestureDetector(
                         onTap: () async {
                           final result = await Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (context) => const LocationPickerScreen(
-                                title: "Pick Route Start",
+                                title: "Explore Map",
                               ),
                             ),
                           );
                           if (result != null) {
-                            setState(() {
-                              _startController.text = result['name'];
-                              _startPoint = result['point'];
-                            });
+                            final point = result['point'] as LatLng;
+                            GeoService().overridePosition(point);
+                            _centerMapOnUser();
+                            if (mounted) {
+                              PremiumToast.show(
+                                context,
+                                title: "Location Spoofed",
+                                message: "Simulating GPS at ${point.latitude.toStringAsFixed(4)}, ${point.longitude.toStringAsFixed(4)}. Checking active zones...",
+                                type: ToastType.info,
+                              );
+                            }
                           }
                         },
                         child: Container(
@@ -656,6 +759,16 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                       urlTemplate:
                                           'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                                       userAgentPackageName: 'com.geotour.app',
+                                    ),
+                                    CircleLayer(
+                                      circles: GeoService().riskZones.map((z) => CircleMarker(
+                                        point: z["center"] as LatLng,
+                                        radius: (z["radius"] as num).toDouble(),
+                                        useRadiusInMeter: true,
+                                        color: Colors.red.withValues(alpha: 0.3),
+                                        borderColor: Colors.red,
+                                        borderStrokeWidth: 2,
+                                      )).toList(),
                                     ),
                                     MarkerLayer(
                                       markers: [
@@ -692,12 +805,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        currentPos != null
-                            ? "Last location update: Just now"
-                            : "Waiting for GPS...",
-                        style: const TextStyle(
+                        GeoService().isManualOverride
+                            ? "Manual Location Selected (Spoofed)"
+                            : currentPos != null
+                                ? "Last location update: Just now"
+                                : "Waiting for GPS...",
+                        style: TextStyle(
                           fontSize: 11,
-                          color: Colors.grey,
+                          fontWeight: GeoService().isManualOverride ? FontWeight.bold : FontWeight.normal,
+                          color: GeoService().isManualOverride ? Colors.redAccent : Colors.grey,
                         ),
                       ),
                     ],
@@ -943,78 +1059,75 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                           ),
                           GestureDetector(
                             onTap: () async {
-                              final messenger = ScaffoldMessenger.of(context);
+                              if (_isAddingTrip) return;
+                              
                               if (startDate != null &&
                                   endDate != null &&
                                   _startController.text.isNotEmpty &&
                                   _endController.text.isNotEmpty) {
-                                final uid =
-                                    AuthService().currentUser?.uid ?? '';
-                                final pointsMsg =
-                                    "Points: ${_startPoint != null ? 'S' : '-'}${_endPoint != null ? 'E' : '-'}${_stopPoints.whereType<LatLng>().length}";
+                                  
+                                setState(() => _isAddingTrip = true);
+                                
+                                final uid = AuthService().currentUser?.uid ?? '';
 
                                 PremiumToast.show(
                                   context,
                                   title: "Planning Trip",
-                                  message:
-                                      "Adding your new journey to GeoTour...",
+                                  message: "Adding your new journey to GeoTour...",
                                   type: ToastType.info,
                                 );
 
-                                await TripService().addTrip(
-                                  TripModel(
-                                    id: DateTime.now().millisecondsSinceEpoch
-                                        .toString(),
-                                    userId: uid,
-                                    title: "${duration()} Days Trip",
-                                    description: _descController.text,
-                                    startLocation: _startController.text,
-                                    startPoint: _startPoint,
-                                    endLocation: _endController.text,
-                                    endPoint: _endPoint,
-                                    stops: _stopControllers
-                                        .map((c) => c.text)
-                                        .toList(),
-                                    stopPoints: _stopPoints
-                                        .whereType<LatLng>()
-                                        .toList(),
-                                    startDate: startDate!,
-                                    endDate: endDate!,
-                                    status: TripStatus.notStarted,
-                                  ),
-                                );
-
-                                // Clear inputs
-                                _startController.clear();
-                                _endController.clear();
-                                _descController.clear();
-                                for (var c in _stopControllers) {
-                                  c.dispose();
-                                }
-                                setState(() {
-                                  _stopControllers.clear();
-                                  _startPoint = null;
-                                  _endPoint = null;
-                                  _stopPoints.clear();
-                                  startDate = null;
-                                  endDate = null;
-                                });
-
-                                if (mounted) {
-                                  PremiumToast.show(
-                                    context,
-                                    title: "Trip Added",
-                                    message:
-                                        "Your new trip has been successfully planned!",
-                                    type: ToastType.success,
+                                try {
+                                  await TripService().addTrip(
+                                    TripModel(
+                                      id: DateTime.now().millisecondsSinceEpoch.toString(),
+                                      userId: uid,
+                                      title: "${duration()} Days Trip",
+                                      description: _descController.text,
+                                      startLocation: _startController.text,
+                                      startPoint: _startPoint,
+                                      endLocation: _endController.text,
+                                      endPoint: _endPoint,
+                                      stops: _stopControllers.map((c) => c.text).toList(),
+                                      stopPoints: _stopPoints.whereType<LatLng>().toList(),
+                                      startDate: startDate!,
+                                      endDate: endDate!,
+                                      status: TripStatus.notStarted,
+                                    ),
                                   );
+
+                                  // Clear inputs
+                                  _startController.clear();
+                                  _endController.clear();
+                                  _descController.clear();
+                                  for (var c in _stopControllers) {
+                                    c.dispose();
+                                  }
+                                  setState(() {
+                                    _stopControllers.clear();
+                                    _startPoint = null;
+                                    _endPoint = null;
+                                    _stopPoints.clear();
+                                    startDate = null;
+                                    endDate = null;
+                                  });
+
+                                  if (mounted) {
+                                    PremiumToast.show(
+                                      context,
+                                      title: "Trip Added",
+                                      message: "Your new trip has been successfully planned!",
+                                      type: ToastType.success,
+                                    );
+                                  }
+                                } finally {
+                                  if (mounted) setState(() => _isAddingTrip = false);
                                 }
                               } else {
                                 PremiumToast.show(
                                   context,
                                   title: "Missing Locations",
-                                  message:
-                                      "Please select start/end points and trial dates.",
+                                  message: "Please select start/end points and trial dates.",
                                   type: ToastType.warning,
                                 );
                               }
@@ -1028,13 +1141,19 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                 color: Colors.black,
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              child: const Text(
-                                "Add",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
+                              child: _isAddingTrip 
+                                  ? const SizedBox(
+                                      height: 16, 
+                                      width: 16, 
+                                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+                                    )
+                                  : const Text(
+                                      "Add",
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                             ),
                           ),
                         ],

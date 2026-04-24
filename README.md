@@ -1,62 +1,66 @@
 # 🌍 GeoTour
 
-GeoTour is a comprehensive, cutting-edge Flutter mobile application designed to ensure tourist safety by seamlessly integrating tourists, hospitals, and police departments during emergency situations. The application features a stunning, premium glassmorphic UI design, providing an intuitive, buttery-smooth user experience.
+GeoTour is a comprehensive, state-of-the-art Flutter mobile application designed to ensure tourist safety by seamlessly integrating **Tourists**, **Medical Facilities**, and **Police Departments**. By leveraging real-time geo-intelligence and AI-powered monitoring, GeoTour provides a critical safety net for travelers in any environment.
 
-## ✨ Key Features
+## ✨ Core Ecosystem
 
-### 🌴 Tourist Module
-- **Interactive Dashboard:** Dynamic and user-friendly interface for immediate access to necessary tools.
-- **Emergency Response System:** Fast SOS alerts connecting straight to the local emergency network.
-- **Medical Profile:** Pre-setup critical medical information for life-saving quick references.
-- **Live Maps:** Integrated map interface to maintain spatial awareness.
+### 🌴 Tourist Module (Safety First)
+- **AI-Powered Geofencing:** Automated SOS triggers when entering high-risk or restricted zones.
+- **Broadcast SOS Network:** One-tap emergency alerts that reach all nearby responders simultaneously.
+- **Digital Health Passport:** Secure storage of medical info (blood group, allergies, medications) for instant responder access.
+- **Live Spatial Awareness:** Real-time map interface with geofence visualization.
 
-### 🏥 Hospital Module
-- **Case Management:** Streamlined system to handle active incoming emergencies and process case transfers.
-- **Referral System:** Efficient dashboards to manage "Active" hospital statuses.
-- **Premium Notifications:** Clear, non-intrusive custom "PremiumToast" alerts.
+### 🏥 Medical Module (Rapid Response)
+- **Omni-Broadcast Dashboard:** Immediate reception of broadcasted medical alerts from any nearby tourist.
+- **Case Lifecycle Management:** Confirm, treat, and complete medical emergencies with a specialized workflow.
+- **Intelligent Referrals:** Seamlessly transfer high-complexity cases to specialized hospitals with full data parity.
+- **Medical Report Access:** Secure viewing and downloading of patient health records from the cloud.
 
-### 🚓 Police Module
-- **Incident Management:** Detailed tracking and overview of ongoing incidents.
-- **Command Dashboard:** Centralized real-time hub for police departments.
+### 🚓 Police Module (Mission Control)
+- **Live Mission Tracking:** Real-time OSRM-powered route navigation between officers and victims.
+- **Dynamic Risk Categorization:** Instant visual indicators for Extreme, High, and Medium risk incidents.
+- **Unit Availability System:** Real-time duty status management (Available, Offline, On Mission).
+- **Inter-Service Communication:** Integrated coordination tools for complex multi-agency responses.
 
-## 🎨 Design & Performance
+## 🎨 Design Philosophy
+GeoTour features a **Premium Glassmorphic Interface** that blends aesthetics with high-stakes functionality:
+- **Frosted-Glass UI:** Modern, clean, and intuitive design that remains readable in high-stress situations.
+- **Fluid Micro-Animations:** Buttery-smooth transitions and haptic feedback for a "live" application feel.
+- **Adaptive Performance:** Optimized for 60fps/120fps across all devices, ensuring zero lag during emergencies.
 
-GeoTour brings a highly optimized user experience:
-- **Glassmorphism Aesthetics:** A modern, frosted-glass interface that feels extremely premium.
-- **Fluid Animations:** Refined transitions (like beautiful FadeTransitions) and micro-animations that make the app feel alive.
-- **Highly Optimized:** Engineered with global optimizations to minimize jank and deliver an uncompromising 60fps/120fps experience.
+## 🛠 Tech Stack
+- **Frontend:** Flutter & Dart (High-performance UI rendering)
+- **Backend:** Firebase (Firestore for real-time data, Firebase Auth for secure identity)
+- **Cloud Storage:** Cloudinary (Secure storage for medical reports and images)
+- **Navigation:** OSRM (Open Source Routing Machine) for real-time route calculations
+- **Geo-Intelligence:** Custom Geofencing and Proximity algorithms
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Flutter SDK (Ensure compatibility with `^3.11.0`)
-- Dart SDK
+- Flutter SDK (`^3.11.0` or higher)
+- Firebase Account (with Firestore and Auth enabled)
+- Cloudinary Account (for health report uploads)
 
 ### Installation
 
-1. Clone the repository:
+1. **Clone the repository:**
    ```bash
    git clone https://github.com/RITHANPRANAOV-R/GeoTour.git
    ```
-2. Navigate to the project directory:
-   ```bash
-   cd GeoTour
-   ```
-3. Fetch dependencies:
+2. **Setup Firebase:**
+   - Add your `google-services.json` (Android) and `GoogleService-Info.plist` (iOS) to the respective directories.
+3. **Install dependencies:**
    ```bash
    flutter pub get
    ```
-4. Run the app:
+4. **Run the application:**
    ```bash
-   flutter run
+   flutter run --no-impeller # (Use --no-impeller if experiencing shader issues)
    ```
 
-## 🛠 Technologies Used
-- **Flutter & Dart** - Core framework and language.
-- (Additional libraries as per project setup, such as routing and state management packages)
-
 ## 🤝 Contributing
-Contributions, issues, and feature requests are always welcome! Feel free to check the issues page.
+Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
 ---
-*Built with ❤️ for a safer travel experience.*
+*Built with ❤️ for a safer, smarter, and more connected travel experience.*

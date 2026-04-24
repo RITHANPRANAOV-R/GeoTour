@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import '../../services/admin_api_service.dart';
 
 class SystemMonitoringScreen extends StatefulWidget {
@@ -37,12 +39,10 @@ class _SystemMonitoringScreenState extends State<SystemMonitoringScreen> {
       _wsChannel?.stream.listen((message) {
         final data = json.decode(message);
         setState(() {
-          // Assuming data is a single user update or full list
           if (data is List) {
             _users = data;
-          } else {
-            // Update individual user in list if found
-            int index = _users.indexWhere((u) => u['id'] == data['id']);
+          } else if (data is Map<String, dynamic>) {
+            final index = _users.indexWhere((u) => u['uid'] == data['uid']);
             if (index != -1) {
               _users[index] = data;
             } else {
@@ -126,18 +126,18 @@ class _SystemMonitoringScreenState extends State<SystemMonitoringScreen> {
                                   end: Alignment.bottomRight,
                                 ),
                                 borderRadius: BorderRadius.circular(24),
-                                border: Border.all(
-                                  color: isDanger
-                                      ? Colors.red.withOpacity(0.2)
-                                      : const Color(0xFFF1F1F1),
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.015),
-                                    blurRadius: 24,
-                                    offset: const Offset(0, 10),
+                                  border: Border.all(
+                                    color: isDanger
+                                        ? Colors.red.withValues(alpha: 0.2)
+                                        : const Color(0xFFF1F1F1),
                                   ),
-                                ],
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.015),
+                                      blurRadius: 24,
+                                      offset: const Offset(0, 10),
+                                    ),
+                                  ],
                               ),
                               child: ListTile(
                                 contentPadding: const EdgeInsets.symmetric(
@@ -149,7 +149,7 @@ class _SystemMonitoringScreenState extends State<SystemMonitoringScreen> {
                                   decoration: BoxDecoration(
                                     color:
                                         (isDanger ? Colors.red : Colors.green)
-                                            .withOpacity(0.1),
+                                            .withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(14),
                                   ),
                                   child: Icon(
@@ -215,35 +215,46 @@ class _SystemMonitoringScreenState extends State<SystemMonitoringScreen> {
       width: double.infinity,
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.03),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: FlutterMap(
+          options: const MapOptions(
+            initialCenter: LatLng(13.0827, 80.2707),
+            initialZoom: 12.0,
+          ),
           children: [
-            const SizedBox(
-              width: 30,
-              height: 30,
-              child: CircularProgressIndicator(
-                strokeWidth: 2.5,
-                color: Colors.black,
-              ),
+            TileLayer(
+              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              userAgentPackageName: 'com.geotour.app',
             ),
-            const SizedBox(height: 16),
-            Text(
-              "Connecting to GPS Network...",
-              style: TextStyle(
-                color: Colors.grey.shade700,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              "Map API integration pending",
-              style: TextStyle(color: Colors.grey.shade400, fontSize: 11),
+            MarkerLayer(
+              markers: _users.map((user) {
+                final isDanger = user['status']?.toString().toLowerCase() == 'sos';
+                return Marker(
+                  point: LatLng(
+                    (user['latitude'] as num).toDouble(),
+                    (user['longitude'] as num).toDouble(),
+                  ),
+                  width: 40,
+                  height: 40,
+                  child: Icon(
+                    Icons.location_on,
+                    color: isDanger ? Colors.red : Colors.blue,
+                    size: 30,
+                  ),
+                );
+              }).toList(),
             ),
           ],
         ),

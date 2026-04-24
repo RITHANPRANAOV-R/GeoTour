@@ -132,7 +132,7 @@ class AdminHomeScreen extends StatelessWidget {
                     const SizedBox(height: 12),
                     _buildMenuItem(
                       context,
-                      "Geo-Fence Management",
+                      "Plot Risk Zones",
                       icon: Icons.map_rounded,
                       onTap: () => _navigateTo(
                         context,

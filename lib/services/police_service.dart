@@ -208,6 +208,7 @@ class PoliceService {
     String? userId,
     String? phone,
     String? contacts,
+    String? touristId,
   }) async {
     final alertData = {
       'name': name,
@@ -220,6 +221,7 @@ class PoliceService {
       'userId': userId,
       'phone': phone,
       'contacts': contacts,
+      'touristId': touristId,
     };
 
     try {
@@ -287,6 +289,9 @@ class PoliceService {
     required String riskLevel,
     String? medicalInfo,
     String? officerId,
+    String? phone,
+    String? contacts,
+    String? touristId,
   }) async {
     final alertData = {
       'victimId': victimId,
@@ -294,11 +299,14 @@ class PoliceService {
       'threat': threat,
       'riskLevel': riskLevel,
       'medicalInfo': medicalInfo,
+      'phone': phone,
+      'contacts': contacts,
       'location': GeoPoint(lat, lng),
       'status': 'pending',
       'timestamp': FieldValue.serverTimestamp(),
       'type': 'targeted',
       'targetedOfficerId': officerId,
+      'touristId': touristId,
     };
 
     // 1. Global collection

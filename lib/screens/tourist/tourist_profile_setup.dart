@@ -113,8 +113,11 @@ class _TouristProfileSetupScreenState extends State<TouristProfileSetupScreen> {
     final uid = user.uid;
 
     try {
+      final touristId = await UserService().generateTouristId(uid);
+
       await FirebaseFirestore.instance.collection("tourists").doc(uid).set({
         "uid": uid,
+        "touristId": touristId,
         "email": user.email ?? "",
         "username": usernameController.text.trim(),
         "phone": phoneController.text.trim(),

@@ -5,8 +5,16 @@ import '../../services/auth_service.dart';
 import '../../services/hospital_service.dart';
 import 'patient_details.dart';
 
-class HospitalHomeContent extends StatelessWidget {
+class HospitalHomeContent extends StatefulWidget {
   const HospitalHomeContent({super.key});
+
+  @override
+  State<HospitalHomeContent> createState() => _HospitalHomeContentState();
+}
+
+class _HospitalHomeContentState extends State<HospitalHomeContent> {
+  String _activeFilter = "Unaccepted";
+  final List<String> _filters = ["Unaccepted", "Ongoing", "Extreme", "All"];
 
   @override
   Widget build(BuildContext context) {
@@ -16,7 +24,7 @@ class HospitalHomeContent extends StatelessWidget {
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       child: Padding(
-        padding: const EdgeInsets.only(bottom: 100),
+        padding: const EdgeInsets.only(bottom: 120),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -51,6 +59,7 @@ class HospitalHomeContent extends StatelessWidget {
                                 fontWeight: FontWeight.w900,
                                 letterSpacing: -1.0,
                               ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           Container(
@@ -101,22 +110,82 @@ class HospitalHomeContent extends StatelessWidget {
                 },
               ),
             ),
+            
+            // Filter Pills
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                child: Row(
+                  children: _filters.map((f) {
+                    bool isActive = _activeFilter == f;
+                    return GestureDetector(
+                      onTap: () => setState(() => _activeFilter = f),
+                      child: Container(
+                        margin: const EdgeInsets.only(right: 8, bottom: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: isActive ? Colors.redAccent : Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: isActive ? Colors.redAccent : Colors.black12),
+                          boxShadow: [
+                            if (isActive)
+                              BoxShadow(
+                                color: Colors.redAccent.withValues(alpha: 0.15),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                          ],
+                        ),
+                        child: Text(
+                          f.toUpperCase(),
+                          style: TextStyle(
+                            color: isActive ? Colors.white : Colors.black,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 10,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 16),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: Text(
-                "Medical Risks",
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.grey.shade500,
-                  letterSpacing: 0.5,
-                ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "Medical Risks",
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.grey.shade500,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  StreamBuilder<QuerySnapshot>(
+                    stream: user != null ? hospitalService.getGlobalHospitalAlertsStream(user.uid) : null,
+                    builder: (context, snap) {
+                      final count = snap.data?.docs.length ?? 0;
+                      return Text(
+                        "Total: $count",
+                        style: TextStyle(fontSize: 10, color: Colors.grey.shade400),
+                      );
+                    }
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 12),
             StreamBuilder<QuerySnapshot>(
               stream: user != null
-                  ? hospitalService.getHospitalAlertsStream(user.uid)
+                  ? hospitalService.getGlobalHospitalAlertsStream(user.uid)
                   : null,
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
@@ -128,9 +197,9 @@ class HospitalHomeContent extends StatelessWidget {
                     child: Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.red.withOpacity(0.05),
+                        color: Colors.red.withValues(alpha: 0.05),
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.red.withOpacity(0.1)),
+                        border: Border.all(color: Colors.red.withValues(alpha: 0.1)),
                       ),
                       child: Column(
                         children: [
@@ -171,7 +240,22 @@ class HospitalHomeContent extends StatelessWidget {
                   );
                 }
 
-                final alerts = snapshot.data?.docs ?? [];
+                var alerts = snapshot.data?.docs ?? [];
+
+                // Filter logic
+                if (_activeFilter == "Unaccepted") {
+                  alerts = alerts.where((d) => 
+                    (d.data() as Map)['status'] == 'pending'
+                  ).toList();
+                } else if (_activeFilter == "Ongoing") {
+                  alerts = alerts.where((d) => 
+                    (d.data() as Map)['status'] == 'ongoing'
+                  ).toList();
+                } else if (_activeFilter == "Extreme") {
+                  alerts = alerts.where((d) => 
+                    (d.data() as Map)['riskLevel']?.toString().toLowerCase() == 'extreme'
+                  ).toList();
+                }
 
                 // Manual Sort (latest first) to avoid Firestore index requirement
                 final sortedAlerts = alerts.toList()
@@ -200,7 +284,7 @@ class HospitalHomeContent extends StatelessWidget {
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            "No medical risks reported.",
+                            "No alerts found for this filter.",
                             style: TextStyle(
                               color: Colors.grey.shade500,
                               fontWeight: FontWeight.w600,
@@ -212,8 +296,14 @@ class HospitalHomeContent extends StatelessWidget {
                   );
                 }
 
-                return Column(
-                  children: sortedAlerts.map((alertDoc) {
+                return ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: sortedAlerts.length,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  separatorBuilder: (context, index) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    final alertDoc = sortedAlerts[index];
                     final data = alertDoc.data() as Map<String, dynamic>;
 
                     String timeText = "Just now";
@@ -229,146 +319,144 @@ class HospitalHomeContent extends StatelessWidget {
                       }
                     }
 
-                    return Container(
-                      margin: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: const Color(0xFFF1F1F1)),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.02),
-                            blurRadius: 20,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(20),
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => PatientDetailsScreen(
-                                    alertData: {...data, 'id': alertDoc.id},
+                    return RepaintBoundary(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: const Color(0xFFF1F1F1)),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.02),
+                              blurRadius: 20,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(20),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => PatientDetailsScreen(
+                                      alertData: {...data, 'id': alertDoc.id},
+                                    ),
                                   ),
-                                ),
-                              );
-                            },
-                            child: Stack(
-                              children: [
-                                Positioned(
-                                  left: 0,
-                                  top: 0,
-                                  bottom: 0,
-                                  child: Container(
-                                    width: 6,
-                                    color: _getRiskColor(data['riskLevel']),
+                                );
+                              },
+                              child: Stack(
+                                children: [
+                                  Positioned(
+                                    left: 0,
+                                    top: 0,
+                                    bottom: 0,
+                                    child: Container(
+                                      width: 6,
+                                      color: _getRiskColor(data['riskLevel']),
+                                    ),
                                   ),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.all(16),
-                                  child: Row(
-                                    children: [
-                                      const SizedBox(width: 8),
-                                      CircleAvatar(
-                                        radius: 24,
-                                        backgroundColor: Colors.grey.shade100,
-                                        child: Icon(
-                                          Icons.person_rounded,
-                                          color: Colors.grey.shade400,
+                                  Padding(
+                                    padding: const EdgeInsets.all(16),
+                                    child: Row(
+                                      children: [
+                                        const SizedBox(width: 8),
+                                        CircleAvatar(
+                                          radius: 24,
+                                          backgroundColor: Colors.grey.shade100,
+                                          child: Icon(
+                                            Icons.person_rounded,
+                                            color: Colors.grey.shade400,
+                                          ),
                                         ),
-                                      ),
-                                      const SizedBox(width: 16),
-                                      Expanded(
-                                        child: Column(
+                                        const SizedBox(width: 16),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                data['victimName'] ?? 'Unknown',
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.w900,
+                                                  fontSize: 17,
+                                                  letterSpacing: -0.5,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Row(
+                                                children: [
+                                                  Icon(
+                                                    Icons.access_time_rounded,
+                                                    size: 12,
+                                                    color: Colors.grey.shade400,
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    timeText,
+                                                    style: TextStyle(
+                                                      color: Colors.grey.shade500,
+                                                      fontSize: 12,
+                                                      fontWeight: FontWeight.w500,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        Column(
                                           crossAxisAlignment:
-                                              CrossAxisAlignment.start,
+                                              CrossAxisAlignment.end,
                                           children: [
-                                            Text(
-                                              data['victimName'] ?? 'Unknown',
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.w900,
-                                                fontSize: 17,
-                                                letterSpacing: -0.5,
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 12,
+                                                vertical: 6,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: _getRiskColor(
+                                                  data['riskLevel'],
+                                                ).withValues(alpha: 0.1),
+                                                borderRadius:
+                                                    BorderRadius.circular(10),
+                                              ),
+                                              child: Text(
+                                                data['riskLevel']
+                                                        ?.toUpperCase() ??
+                                                    'HIGH',
+                                                style: TextStyle(
+                                                  color: _getRiskColor(
+                                                    data['riskLevel'],
+                                                  ),
+                                                  fontWeight: FontWeight.w900,
+                                                  fontSize: 10,
+                                                  letterSpacing: 0.5,
+                                                ),
                                               ),
                                             ),
-                                            const SizedBox(height: 4),
-                                            Row(
-                                              children: [
-                                                Icon(
-                                                  Icons.access_time_rounded,
-                                                  size: 12,
-                                                  color: Colors.grey.shade400,
-                                                ),
-                                                const SizedBox(width: 4),
-                                                Text(
-                                                  timeText,
-                                                  style: TextStyle(
-                                                    color: Colors.grey.shade500,
-                                                    fontSize: 12,
-                                                    fontWeight: FontWeight.w500,
-                                                  ),
-                                                ),
-                                              ],
+                                            const SizedBox(height: 8),
+                                            Icon(
+                                              Icons.arrow_forward_ios_rounded,
+                                              size: 14,
+                                              color: Colors.grey.shade300,
                                             ),
                                           ],
                                         ),
-                                      ),
-                                      Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.end,
-                                        children: [
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 12,
-                                              vertical: 6,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: _getRiskColor(
-                                                data['riskLevel'],
-                                              ).withValues(alpha: 0.1),
-                                              borderRadius:
-                                                  BorderRadius.circular(10),
-                                            ),
-                                            child: Text(
-                                              data['riskLevel']
-                                                      ?.toUpperCase() ??
-                                                  'HIGH',
-                                              style: TextStyle(
-                                                color: _getRiskColor(
-                                                  data['riskLevel'],
-                                                ),
-                                                fontWeight: FontWeight.w900,
-                                                fontSize: 10,
-                                                letterSpacing: 0.5,
-                                              ),
-                                            ),
-                                          ),
-                                          const SizedBox(height: 8),
-                                          Icon(
-                                            Icons.arrow_forward_ios_rounded,
-                                            size: 14,
-                                            color: Colors.grey.shade300,
-                                          ),
-                                        ],
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
                         ),
                       ),
                     );
-                  }).toList(),
+                  },
                 );
               },
             ),

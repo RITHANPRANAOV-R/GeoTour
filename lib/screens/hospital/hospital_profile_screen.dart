@@ -301,7 +301,7 @@ class _HospitalProfileScreenState extends State<HospitalProfileScreen> {
         border: Border.all(color: const Color(0xFFF1F1F1), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.015),
+            color: Colors.black.withValues(alpha: 0.015),
             blurRadius: 24,
             offset: const Offset(0, 10),
           ),
@@ -315,7 +315,7 @@ class _HospitalProfileScreenState extends State<HospitalProfileScreen> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.1),
+                  color: Colors.red.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(icon, color: Colors.redAccent, size: 20),

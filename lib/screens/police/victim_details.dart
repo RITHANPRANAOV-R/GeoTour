@@ -199,21 +199,16 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
               Padding(
                 padding: const EdgeInsets.only(right: 16.0),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Colors.red.withValues(alpha: 0.1),
+                    color: _getRiskColor(data['riskLevel']?.toString() ?? "High").withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: Colors.red.withValues(alpha: 0.2),
-                    ),
+                    border: Border.all(color: _getRiskColor(data['riskLevel']?.toString() ?? "High").withValues(alpha: 0.2)),
                   ),
-                  child: const Text(
-                    "Extreme Risk",
+                  child: Text(
+                    "${(data['riskLevel']?.toString() ?? "High").toUpperCase()} RISK",
                     style: TextStyle(
-                      color: Colors.red,
+                      color: _getRiskColor(data['riskLevel']?.toString() ?? "High"),
                       fontWeight: FontWeight.w700,
                       fontSize: 10,
                     ),
@@ -226,8 +221,8 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SizedBox(
-                  height: 350,
+                Container(
+                  height: MediaQuery.of(context).size.height * 0.45,
                   width: double.infinity,
                   child: Stack(
                     children: [
@@ -259,8 +254,8 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
                                 if (victimPos != null)
                                   Marker(
                                     point: victimPos,
-                                    width: 60,
-                                    height: 60,
+                                    width: 80,
+                                    height: 80,
                                     child: Column(
                                       children: [
                                         Container(
@@ -856,53 +851,71 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
   }
 
   Widget _buildDetailCard(Map<String, dynamic> data) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Colors.white, Color(0xFFFAFAFA)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFF1F1F1)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.015),
-            blurRadius: 24,
-            offset: const Offset(0, 10),
+    final String victimId = data['userId'] ?? data['victimId'] ?? '';
+    
+    return FutureBuilder<DocumentSnapshot>(
+      future: FirebaseFirestore.instance.collection('tourists').doc(victimId).get(),
+      builder: (context, snapshot) {
+        final touristData = snapshot.data?.data() as Map<String, dynamic>?;
+        final phone = data['phone'] ?? touristData?['phone'] ?? "N/A";
+        final erData = touristData?['emergencyContact'] as Map<String, dynamic>?;
+        final contacts = data['contacts'] ?? erData?['phone'] ?? "N/A";
+        final touristId = data['touristId'] ?? touristData?['touristId'] ?? "N/A";
+
+        return Container(
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Colors.white, Color(0xFFFAFAFA)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: const Color(0xFFF1F1F1)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.015),
+                blurRadius: 24,
+                offset: const Offset(0, 10),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            _buildInfoRow(
-              Icons.person_outline,
-              "Victim",
-              data['name'] ?? "Unknown",
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              children: [
+                _buildInfoRow(
+                  Icons.person_outline,
+                  "Victim",
+                  data['name'] ?? "Unknown",
+                ),
+                _buildInfoRow(
+                  Icons.badge_outlined,
+                  "Tourist ID",
+                  touristId,
+                ),
+                const Divider(height: 32, thickness: 0.5),
+                _buildInfoRow(
+                  Icons.warning_amber_rounded,
+                  "Threat",
+                  data['threat'] ?? "Risk Zone Entry",
+                ),
+                const Divider(height: 32, thickness: 0.5),
+                _buildInfoRow(
+                  Icons.phone_outlined,
+                  "Phone",
+                  phone,
+                ),
+                const Divider(height: 32, thickness: 0.5),
+                _buildInfoRow(
+                  Icons.contact_phone_outlined,
+                  "ER Contacts",
+                  contacts,
+                ),
+              ],
             ),
-            const Divider(height: 32, thickness: 0.5),
-            _buildInfoRow(
-              Icons.warning_amber_rounded,
-              "Threat",
-              data['threat'] ?? "Risk Zone Entry",
-            ),
-            const Divider(height: 32, thickness: 0.5),
-            _buildInfoRow(
-              Icons.phone_outlined,
-              "Phone",
-              data['phone'] ?? "N/A",
-            ),
-            const Divider(height: 32, thickness: 0.5),
-            _buildInfoRow(
-              Icons.contact_phone_outlined,
-              "ER Contacts",
-              data['contacts'] ?? "N/A",
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -951,10 +964,10 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: Colors.red.withOpacity(0.05)),
+                border: Border.all(color: Colors.red.withValues(alpha: 0.05)),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.015),
+                    color: Colors.black.withValues(alpha: 0.015),
                     blurRadius: 24,
                     offset: const Offset(0, 10),
                   ),
@@ -964,6 +977,12 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
                 padding: const EdgeInsets.all(24),
                 child: Column(
                   children: [
+                    _buildInfoRow(
+                      Icons.bloodtype_outlined,
+                      "Blood Group",
+                      medicalInfo['bloodGroup'] ?? "N/A",
+                    ),
+                    const Divider(height: 32, thickness: 0.5),
                     _buildInfoRow(
                       Icons.medication_outlined,
                       "Medications",
@@ -1054,6 +1073,19 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
         );
       },
     );
+  }
+
+  Color _getRiskColor(String level) {
+    switch (level.toUpperCase()) {
+      case 'EXTREME':
+        return Colors.red;
+      case 'HIGH':
+        return Colors.orange;
+      case 'MEDIUM':
+        return Colors.blue;
+      default:
+        return Colors.green;
+    }
   }
 
   Widget _buildInfoRow(IconData icon, String label, String value) {

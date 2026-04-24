@@ -37,7 +37,6 @@ class HospitalService {
         .collection('hospitals')
         .doc(hospitalId)
         .collection('alerts')
-        .where('status', isEqualTo: 'pending')
         .snapshots();
   }
 
@@ -51,15 +50,27 @@ class HospitalService {
   }
 
   Future<void> acceptCase(String hospitalId, String alertId) async {
-    await _firestore
-        .collection('hospitals')
-        .doc(hospitalId)
-        .collection('alerts')
-        .doc(alertId)
-        .update({
-          'status': 'ongoing',
-          'acceptedAt': FieldValue.serverTimestamp(),
-        });
+    final batch = _firestore.batch();
+    
+    // 1. Update hospital sub-collection
+    batch.update(
+      _firestore.collection('hospitals').doc(hospitalId).collection('alerts').doc(alertId),
+      {
+        'status': 'ongoing',
+        'acceptedAt': FieldValue.serverTimestamp(),
+      }
+    );
+
+    // 2. Update global hospital_alerts collection
+    batch.update(
+      _firestore.collection('hospital_alerts').doc(alertId),
+      {
+        'status': 'ongoing',
+        'acceptedAt': FieldValue.serverTimestamp(),
+      }
+    );
+
+    await batch.commit();
   }
 
   Future<void> completeCase(
@@ -67,16 +78,27 @@ class HospitalService {
     String alertId,
     String description,
   ) async {
-    await _firestore
-        .collection('hospitals')
-        .doc(hospitalId)
-        .collection('alerts')
-        .doc(alertId)
-        .update({
-          'status': 'completed',
-          'completedAt': FieldValue.serverTimestamp(),
-          'caseDescription': description,
-        });
+    final batch = _firestore.batch();
+
+    batch.update(
+      _firestore.collection('hospitals').doc(hospitalId).collection('alerts').doc(alertId),
+      {
+        'status': 'completed',
+        'completedAt': FieldValue.serverTimestamp(),
+        'caseDescription': description,
+      }
+    );
+
+    batch.update(
+      _firestore.collection('hospital_alerts').doc(alertId),
+      {
+        'status': 'completed',
+        'completedAt': FieldValue.serverTimestamp(),
+        'caseDescription': description,
+      }
+    );
+
+    await batch.commit();
   }
 
   Future<void> transferCase({
@@ -123,14 +145,18 @@ class HospitalService {
     required double lat,
     required double lng,
     required String medicalInfo,
+    String? phone,
+    String? contacts,
     required String hospitalId,
     required String riskLevel,
   }) async {
     final alertData = {
-      'victimId': victimId,
+      'userId': victimId, // Changed from victimId to userId for consistency
       'victimName': victimName,
       'location': GeoPoint(lat, lng),
       'medicalInfo': medicalInfo,
+      'phone': phone,
+      'contacts': contacts,
       'riskLevel': riskLevel,
       'status': 'pending',
       'timestamp': FieldValue.serverTimestamp(),
@@ -143,6 +169,8 @@ class HospitalService {
       final alertDoc = await _firestore
           .collection('hospital_alerts')
           .add(alertData);
+
+      debugPrint("Dispatched Hospital SOS to Hospital ID: $hospitalId");
 
       // 2. Also add to the specific hospital's alerts sub-collection
       await _firestore
@@ -163,5 +191,12 @@ class HospitalService {
       debugPrint("Error triggering hospital SOS: $e");
       rethrow;
     }
+  }
+
+  Stream<QuerySnapshot> getGlobalHospitalAlertsStream(String hospitalId) {
+    return _firestore
+        .collection('hospital_alerts')
+        .where('targetHospitalId', whereIn: [hospitalId, 'unassigned', 'all'])
+        .snapshots();
   }
 }

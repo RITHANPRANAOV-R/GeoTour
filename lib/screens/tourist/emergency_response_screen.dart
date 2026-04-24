@@ -7,6 +7,9 @@ import '../../services/geo_service.dart';
 import '../../services/chat_service.dart';
 import '../../models/alert_model.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../services/hospital_service.dart';
 import '../../models/hospital_model.dart';
 import '../../services/police_service.dart';
@@ -159,27 +162,8 @@ class _EmergencyResponseScreenState extends State<EmergencyResponseScreen>
       // Find nearest hospital from the first document in the pool for now
       // A more complex implementation would sort by distance
       // Find nearest AVAILABLE hospital
-      final hospitals = await FirebaseFirestore.instance
-          .collection('hospitals')
-          .where('isAvailable', isEqualTo: true)
-          .limit(1)
-          .get();
-
-      String nearestHospitalId;
-      if (hospitals.docs.isNotEmpty) {
-        nearestHospitalId = hospitals.docs.first.id;
-      } else {
-        // Fallback: If no hospital is explicitly marked available, send to the first one found
-        final anyHospital = await FirebaseFirestore.instance
-            .collection('hospitals')
-            .limit(1)
-            .get();
-
-        if (anyHospital.docs.isEmpty) {
-          throw Exception("No hospitals registered in the system.");
-        }
-        nearestHospitalId = anyHospital.docs.first.id;
-      }
+      // Broadcast to ALL hospitals instead of just one
+      const String nearestHospitalId = 'all';
 
       await HospitalService().triggerHospitalSOS(
         victimId: user.uid,
@@ -187,6 +171,8 @@ class _EmergencyResponseScreenState extends State<EmergencyResponseScreen>
         lat: posData.latitude,
         lng: posData.longitude,
         medicalInfo: medicalSummary,
+        phone: touristData?['phone'],
+        contacts: touristData?['emergencyContacts'],
         hospitalId: nearestHospitalId,
         riskLevel: riskLevel,
       );
@@ -195,8 +181,7 @@ class _EmergencyResponseScreenState extends State<EmergencyResponseScreen>
         PremiumToast.show(
           context,
           title: "Medical Alert Dispatched",
-          message:
-              "Emergency broadcast sent to the nearest available hospital.",
+          message: "Emergency broadcast sent to all nearby medical facilities.",
           type: ToastType.error,
         );
         setState(() => sosTriggered = true);
@@ -267,7 +252,10 @@ class _EmergencyResponseScreenState extends State<EmergencyResponseScreen>
         threat: "Emergency SOS: $riskLevel Risk",
         riskLevel: riskLevel,
         medicalInfo: medicalSummary,
+        phone: touristData?['phone'],
+        contacts: touristData?['emergencyContacts'],
         officerId: nearestOfficerId,
+        touristId: touristData?['touristId'],
       );
 
       if (mounted) {
@@ -566,135 +554,163 @@ class _EmergencyResponseScreenState extends State<EmergencyResponseScreen>
 
   Widget _buildMedicalTab() {
     final user = AuthService().currentUser;
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildMapCard(),
-          const SizedBox(height: 20),
-          const Text(
-            "Nearest Hospital",
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          ),
-          const SizedBox(height: 12),
-          StreamBuilder<List<HospitalModel>>(
-            stream: HospitalService().getNearestHospitalsStream(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting &&
-                  !snapshot.hasData) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              final hospitals = snapshot.data!;
-              if (hospitals.isEmpty) {
-                return const Text(
-                  "No nearby hospitals found.",
-                  style: TextStyle(color: Colors.grey),
-                );
-              }
+    return StreamBuilder<List<HospitalModel>>(
+      stream: HospitalService().getNearestHospitalsStream(),
+      builder: (context, snapshot) {
+        final alert = AlertService().alerts
+            .where((a) => a.status != 'completed')
+            .firstOrNull;
 
-              return Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
+        return SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildMapCard(),
+              const SizedBox(height: 20),
+              if (alert != null) ...[
+                const Text(
+                  "Response Tracking",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),
-                child: Column(
-                  children: [
-                    // Map Illustration Placeholder
-                    Container(
-                      height: 100,
-                      width: double.infinity,
-                      margin: const EdgeInsets.only(bottom: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.shade50,
-                        borderRadius: BorderRadius.circular(12),
-                        image: const DecorationImage(
-                          image: NetworkImage(
-                            "https://img.freepik.com/free-vector/city-map-with-navigation-pins_23-2148293527.jpg",
-                          ),
-                          fit: BoxFit.cover,
-                          opacity: 0.6,
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.medical_services,
+                          color: Colors.green,
                         ),
                       ),
-                      child: const Center(
-                        child: Icon(Icons.map, color: Colors.blue, size: 40),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              "Medical Team Dispatched",
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            Text(
+                              "Status: ${alert.status.toUpperCase()}",
+                              style: const TextStyle(
+                                color: Colors.grey,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    ...hospitals.take(3).map((hospital) {
-                      return Column(
-                        children: [
-                          _hospitalItem(
-                            hospital.name,
-                            "1.5 km", // Default for now
-                          ),
-                          const Divider(),
-                        ],
-                      );
-                    }),
-                    const Align(
-                      alignment: Alignment.centerRight,
-                      child: Text(
-                        "Navigate to near by Hospital",
-                        style: TextStyle(fontSize: 10, color: Colors.grey),
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              );
-            },
-          ),
-          const SizedBox(height: 20),
-          const Text(
-            "Medical Info",
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          ),
-          const SizedBox(height: 12),
-          StreamBuilder<DocumentSnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection('tourists')
-                .doc(user?.uid ?? "")
-                .snapshots(),
-            builder: (context, snapshot) {
-              Map<String, dynamic> info = {
-                "Blood Group": "N/A",
-                "Current Medications": "None",
-                "Allergies": "None",
-                "Surgeries": "None",
-              };
+                const SizedBox(height: 20),
+              ],
+              const Text(
+                "Nearest Hospital",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const SizedBox(height: 12),
+              if (snapshot.connectionState == ConnectionState.waiting &&
+                  !snapshot.hasData)
+                const Center(child: CircularProgressIndicator())
+              else if (!snapshot.hasData || snapshot.data!.isEmpty)
+                const Text(
+                  "No nearby hospitals found.",
+                  style: TextStyle(color: Colors.grey),
+                )
+              else
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Column(
+                    children: [
+                      ...snapshot.data!.take(3).map((hospital) {
+                        return Column(
+                          children: [
+                            _hospitalItem(
+                              hospital.name,
+                              hospital.distance > 0
+                                  ? "${hospital.distance.toStringAsFixed(1)} km"
+                                  : "Nearby",
+                              hospital.latitude,
+                              hospital.longitude,
+                            ),
+                            const Divider(),
+                          ],
+                        );
+                      }),
+                    ],
+                  ),
+                ),
+              const SizedBox(height: 20),
+              const Text(
+                "Medical Info",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const SizedBox(height: 12),
+              StreamBuilder<DocumentSnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('tourists')
+                    .doc(user?.uid ?? "")
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  Map<String, dynamic> info = {
+                    "Blood Group": "N/A",
+                    "Current Medications": "None",
+                    "Allergies": "None",
+                    "Surgeries": "None",
+                  };
 
-              if (snapshot.hasData && snapshot.data!.exists) {
-                final data = snapshot.data!.data() as Map<String, dynamic>;
-                if (data.containsKey('medicalInfo')) {
-                  final m = data['medicalInfo'] as Map<String, dynamic>;
-                  info["Blood Group"] = m['bloodGroup'] ?? "N/A";
-                  info["Current Medications"] = m['medications'] ?? "None";
-                  info["Allergies"] = m['allergies'] ?? "None";
-                  info["Surgeries"] = m['surgeries'] ?? "None";
-                }
-              }
+                  if (snapshot.hasData && snapshot.data!.exists) {
+                    final data = snapshot.data!.data() as Map<String, dynamic>;
+                    if (data.containsKey('medicalInfo')) {
+                      final m = data['medicalInfo'] as Map<String, dynamic>;
+                      info["Blood Group"] = m['bloodGroup'] ?? "N/A";
+                      info["Current Medications"] = m['medications'] ?? "None";
+                      info["Allergies"] = m['allergies'] ?? "None";
+                      info["Surgeries"] = m['surgeries'] ?? "None";
+                    }
+                  }
 
-              return Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: info.entries
-                      .map((e) => _infoItem(e.key, e.value))
-                      .toList(),
-                ),
-              );
-            },
+                  return Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: info.entries
+                          .map((e) => _infoItem(e.key, e.value))
+                          .toList(),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 100),
+            ],
           ),
-          const SizedBox(height: 100), // Space for bottom navigation
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -720,9 +736,9 @@ class _EmergencyResponseScreenState extends State<EmergencyResponseScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildMapCard(),
-              const SizedBox(height: 20),
               if (!isAssigned) ...[
+                _buildMapCard(),
+                const SizedBox(height: 20),
                 StreamBuilder<List<OfficerModel>>(
                   stream: PoliceService().getAvailableOfficersStream(),
                   builder: (context, officerSnapshot) {
@@ -801,32 +817,60 @@ class _EmergencyResponseScreenState extends State<EmergencyResponseScreen>
                 ),
                 const SizedBox(height: 24),
               ] else ...[
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: const [
-                    Text(
-                      "Estimated Arrival",
-                      style: TextStyle(color: Colors.grey, fontSize: 12),
-                    ),
-                    Text(
-                      "Active Tracking...",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-                Text(
-                  "Officer $officerName is en-route tracking your live location",
-                  style: const TextStyle(fontSize: 12),
-                ),
-                const SizedBox(height: 16),
-                _buildResponderCard(
-                  officerName ?? "Officer",
-                  data['acceptedBy'] ?? "#0000",
-                  chatId: activeAlertId!,
-                  recipientId: data['acceptedBy'],
+                StreamBuilder<DocumentSnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('police')
+                      .doc(data['acceptedBy'])
+                      .snapshots(),
+                  builder: (context, offSnap) {
+                    LatLng? responderPos;
+                    if (offSnap.hasData && offSnap.data!.exists) {
+                      final offData =
+                          offSnap.data!.data() as Map<String, dynamic>;
+                      final geo = offData['location'] as GeoPoint?;
+                      if (geo != null) {
+                        responderPos = LatLng(geo.latitude, geo.longitude);
+                      }
+                    }
+
+                    return Column(
+                      children: [
+                        _buildMapCard(responderPos: responderPos),
+                        const SizedBox(height: 20),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: const [
+                            Text(
+                              "Estimated Arrival",
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 12,
+                              ),
+                            ),
+                            Text(
+                              "Active Pursuit",
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Text(
+                          "Officer $officerName is en-route tracking your live location",
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildResponderCard(
+                          officerName ?? "Officer",
+                          data['acceptedBy'] ?? "#0000",
+                          chatId: activeAlertId!,
+                          recipientId: data['acceptedBy'],
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ],
               const SizedBox(height: 100),
@@ -945,66 +989,149 @@ class _EmergencyResponseScreenState extends State<EmergencyResponseScreen>
     );
   }
 
-  Widget _buildMapCard() {
+  Widget _buildMapCard({LatLng? responderPos}) {
     return ListenableBuilder(
       listenable: GeoService(),
       builder: (context, _) {
         final pos = GeoService().currentPosition;
+        final userLatLng = pos != null
+            ? LatLng(pos.latitude, pos.longitude)
+            : null;
+
         return Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: const [
-                  Text(
-                    "Your location",
-                    style: TextStyle(color: Colors.grey, fontSize: 13),
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "Live Status",
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 18,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      Text(
+                        responderPos != null
+                            ? "Tracking responder..."
+                            : "Broadcasting location...",
+                        style: TextStyle(
+                          color: Colors.grey.shade500,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
                   ),
-                  Icon(Icons.refresh, size: 20, color: Colors.grey),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: Colors.blue,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        const Text(
+                          "GPS LIVE",
+                          style: TextStyle(
+                            color: Colors.blue,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 10,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
-              const SizedBox(height: 16),
-              Container(
-                height: 140,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+              const SizedBox(height: 20),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: SizedBox(
+                  height: 200,
+                  width: double.infinity,
+                  child: FlutterMap(
+                    options: MapOptions(
+                      initialCenter:
+                          userLatLng ?? const LatLng(13.0827, 80.2707),
+                      initialZoom: 14.0,
+                    ),
                     children: [
-                      const Icon(
-                        Icons.location_on,
-                        color: Colors.red,
-                        size: 48,
+                      TileLayer(
+                        urlTemplate:
+                            'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                        userAgentPackageName: 'com.geotour.app',
                       ),
-                      if (pos != null)
-                        Text(
-                          "${pos.latitude.toStringAsFixed(4)}, ${pos.longitude.toStringAsFixed(4)}",
-                          style: const TextStyle(
-                            fontSize: 10,
-                            color: Colors.grey,
-                          ),
+                      MarkerLayer(
+                        markers: [
+                          if (userLatLng != null)
+                            Marker(
+                              point: userLatLng,
+                              width: 60,
+                              height: 60,
+                              child: const Icon(
+                                Icons.location_history_rounded,
+                                color: Colors.blue,
+                                size: 40,
+                              ),
+                            ),
+                          if (responderPos != null)
+                            Marker(
+                              point: responderPos,
+                              width: 60,
+                              height: 60,
+                              child: const Icon(
+                                Icons.local_police_rounded,
+                                color: Colors.red,
+                                size: 40,
+                              ),
+                            ),
+                        ],
+                      ),
+                      if (userLatLng != null && responderPos != null)
+                        PolylineLayer(
+                          polylines: [
+                            Polyline(
+                              points: [userLatLng, responderPos],
+                              color: Colors.blueAccent.withValues(alpha: 0.5),
+                              strokeWidth: 4,
+                              pattern: const StrokePattern.dotted(),
+                            ),
+                          ],
                         ),
                     ],
                   ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                pos != null
-                    ? "Last location update: Just now"
-                    : "Waiting for GPS...",
-                style: const TextStyle(fontSize: 11, color: Colors.grey),
               ),
             ],
           ),
@@ -1013,20 +1140,72 @@ class _EmergencyResponseScreenState extends State<EmergencyResponseScreen>
     );
   }
 
-  Widget _hospitalItem(String name, String dist) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Expanded(
-          child: Text(
-            name,
-            style: const TextStyle(fontSize: 13),
-            overflow: TextOverflow.ellipsis,
-          ),
+  Future<void> _openInMaps(double lat, double lng) async {
+    final Uri googleMapsUrl = Uri.parse("google.navigation:q=$lat,$lng");
+    final Uri appleMapsUrl = Uri.parse("https://maps.apple.com/?q=$lat,$lng");
+    final Uri universalUrl = Uri.parse(
+      "https://www.google.com/maps/search/?api=1&query=$lat,$lng",
+    );
+
+    try {
+      if (Theme.of(context).platform == TargetPlatform.android) {
+        if (await canLaunchUrl(googleMapsUrl)) {
+          await launchUrl(googleMapsUrl);
+        } else {
+          await launchUrl(universalUrl, mode: LaunchMode.externalApplication);
+        }
+      } else if (Theme.of(context).platform == TargetPlatform.iOS) {
+        if (await canLaunchUrl(appleMapsUrl)) {
+          await launchUrl(appleMapsUrl);
+        } else {
+          await launchUrl(universalUrl, mode: LaunchMode.externalApplication);
+        }
+      } else {
+        await launchUrl(universalUrl, mode: LaunchMode.externalApplication);
+      }
+    } catch (e) {
+      if (mounted) {
+        PremiumToast.show(
+          context,
+          title: "Launch Error",
+          message: "Error launching maps: $e",
+          type: ToastType.error,
+        );
+      }
+    }
+  }
+
+  Widget _hospitalItem(String name, String dist, double lat, double lng) {
+    return InkWell(
+      onTap: () => _openInMaps(lat, lng),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    dist,
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.directions_rounded, color: Colors.blue, size: 24),
+          ],
         ),
-        const SizedBox(width: 8),
-        Text(dist, style: const TextStyle(fontSize: 13, color: Colors.grey)),
-      ],
+      ),
     );
   }
 

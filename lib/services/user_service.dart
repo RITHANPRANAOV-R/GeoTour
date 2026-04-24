@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:math';
 
 class UserService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -19,6 +20,26 @@ class UserService {
     await _db.collection("users").doc(uid).set({
       "roleCompletion": {role: false},
     }, SetOptions(merge: true));
+
+    if (role == "tourist") {
+      final touristId = await generateTouristId(uid);
+      await _db.collection("users").doc(uid).set({
+        "touristId": touristId,
+      }, SetOptions(merge: true));
+    }
+  }
+
+  Future<String> generateTouristId(String uid) async {
+    // Check if user already has an ID
+    final doc = await _db.collection("users").doc(uid).get();
+    if (doc.exists && doc.data()?.containsKey("touristId") == true) {
+      return doc.data()!["touristId"];
+    }
+
+    final year = DateTime.now().year;
+    final random = Random().nextInt(8999) + 1000; // 1000 to 9999
+    final touristId = "GT-$year-$random";
+    return touristId;
   }
 
   Future<Map<String, dynamic>?> getUserMainDoc(String uid) async {
