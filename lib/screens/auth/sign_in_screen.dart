@@ -137,6 +137,17 @@ class _SignInScreenState extends State<SignInScreen> {
 
   void _navigateBasedOnRoleAndCompletion(String role, bool completed) {
     setState(() => isLoading = false);
+
+    final user = AuthService().currentUser;
+    if (mounted && user != null) {
+      PremiumToast.show(
+        context,
+        title: "Login Successful",
+        message: "Welcome back, ${user.email}!",
+        type: ToastType.success,
+      );
+    }
+
     if (completed) {
       switch (role) {
         case "tourist":
