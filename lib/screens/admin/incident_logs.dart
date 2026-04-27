@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/admin_api_service.dart';
+import 'incident_details.dart';
 
 class IncidentLogsScreen extends StatefulWidget {
   const IncidentLogsScreen({super.key});
@@ -11,17 +12,7 @@ class IncidentLogsScreen extends StatefulWidget {
 class _IncidentLogsScreenState extends State<IncidentLogsScreen> {
   final AdminAPIService _apiService = AdminAPIService();
   List<dynamic> _incidents = [];
-  List<dynamic> _filteredIncidents = [];
   bool _isLoading = true;
-  String _filter = "All";
-
-  final List<String> _filterOptions = [
-    "All",
-    "Accident",
-    "Threat",
-    "Geo-Fence Violation",
-    "Medical Alert",
-  ];
 
   @override
   void initState() {
@@ -34,29 +25,9 @@ class _IncidentLogsScreenState extends State<IncidentLogsScreen> {
     final data = await _apiService.getIncidents();
     setState(() {
       _incidents = data;
-      _filteredIncidents = _incidents;
       _isLoading = false;
     });
   }
-
-  void _applyFilter(String? value) {
-    if (value == null) return;
-    setState(() {
-      _filter = value;
-      if (_filter == "All") {
-        _filteredIncidents = _incidents;
-      } else {
-        _filteredIncidents = _incidents
-            .where(
-              (incident) =>
-                  incident['type']?.toString().toLowerCase() ==
-                  _filter.toLowerCase(),
-            )
-            .toList();
-      }
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -95,69 +66,19 @@ class _IncidentLogsScreenState extends State<IncidentLogsScreen> {
       ),
       body: Column(
         children: [
-          Container(
-            margin: const EdgeInsets.all(16),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFFF1F1F1)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.01),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.filter_list_rounded,
-                  size: 20,
-                  color: Colors.grey,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: _filter,
-                      icon: const Icon(
-                        Icons.keyboard_arrow_down_rounded,
-                        color: Colors.grey,
-                      ),
-                      style: const TextStyle(
-                        fontFamily: 'Inter',
-                        color: Colors.black,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                      ),
-                      items: _filterOptions
-                          .map(
-                            (f) => DropdownMenuItem(value: f, child: Text(f)),
-                          )
-                          .toList(),
-                      onChanged: _applyFilter,
-                      isExpanded: true,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
-                : _filteredIncidents.isEmpty
+                : _incidents.isEmpty
                 ? const Center(child: Text("No incidents logged."))
                 : ListView.separated(
                     physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-                    itemCount: _filteredIncidents.length,
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _incidents.length,
                     separatorBuilder: (context, index) =>
                         const SizedBox(height: 12),
                     itemBuilder: (context, index) {
-                      final log = _filteredIncidents[index];
+                      final log = _incidents[index];
                       final typeColor = _getStatusColor(
                         log['type'] ?? 'default',
                       );
@@ -179,6 +100,16 @@ class _IncidentLogsScreenState extends State<IncidentLogsScreen> {
                           ],
                         ),
                         child: ListTile(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => IncidentDetailsScreen(
+                                  incident: log,
+                                ),
+                              ),
+                            );
+                          },
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16,
                             vertical: 8,
