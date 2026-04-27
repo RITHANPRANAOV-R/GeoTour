@@ -9,24 +9,39 @@ class UserService {
     required String email,
     required String role,
   }) async {
+    // 1. Create main user document
     await _db.collection("users").doc(uid).set({
       "email": email,
       "roles": FieldValue.arrayUnion([role]),
       "activeRole": role,
       "createdAt": DateTime.now().toIso8601String(),
-    }, SetOptions(merge: true));
-
-    // Initialize role completion if it doesn't exist
-    await _db.collection("users").doc(uid).set({
       "roleCompletion": {role: false},
     }, SetOptions(merge: true));
 
+    // 2. Initialize role-specific document to prevent "missing document" errors in profile screens
+    String roleCollection = role == 'tourist' ? 'tourists' : role;
+    
+    Map<String, dynamic> initialData = {
+      "email": email,
+      "uid": uid,
+      "createdAt": FieldValue.serverTimestamp(),
+    };
+
     if (role == "tourist") {
       final touristId = await generateTouristId(uid);
-      await _db.collection("users").doc(uid).set({
+      initialData["touristId"] = touristId;
+      initialData["username"] = email.split('@')[0];
+      
+      // Update main doc with touristId too
+      await _db.collection("users").doc(uid).update({
         "touristId": touristId,
-      }, SetOptions(merge: true));
+      });
+    } else if (role == "police") {
+      initialData["name"] = email.split('@')[0];
+      initialData["badgeNumber"] = "PENDING";
     }
+
+    await _db.collection(roleCollection).doc(uid).set(initialData, SetOptions(merge: true));
   }
 
   Future<String> generateTouristId(String uid) async {
