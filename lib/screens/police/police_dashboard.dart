@@ -59,7 +59,7 @@ class _PoliceDashboardState extends State<PoliceDashboard> {
             NotificationService().showNotification(
               id: change.doc.id.hashCode,
               title: "🚨 Emergency SOS",
-              body: "${data['name'] ?? 'Someone'} needs immediate help: ${data['threat'] ?? 'Unknown threat'}",
+              body: "${data['name'] ?? data['victimName'] ?? 'Someone'} needs immediate help: ${data['threat'] ?? 'Unknown threat'}",
               payload: change.doc.id,
             );
           }

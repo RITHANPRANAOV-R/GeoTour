@@ -172,6 +172,15 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen> {
                   alerts = alerts.where((d) => (d.data() as Map)['riskLevel']?.toString().toUpperCase() == 'HIGH' || (d.data() as Map)['riskLevel']?.toString().toUpperCase() == 'EXTREME').toList();
                 }
 
+                // Sort by timestamp — newest first
+                alerts.sort((a, b) {
+                  final aTime = (a.data() as Map<String, dynamic>)['timestamp'] as Timestamp?;
+                  final bTime = (b.data() as Map<String, dynamic>)['timestamp'] as Timestamp?;
+                  if (aTime == null) return 1;
+                  if (bTime == null) return -1;
+                  return bTime.compareTo(aTime);
+                });
+
                 if (alerts.isEmpty) {
                   return Container(
                     width: double.infinity,
@@ -222,7 +231,7 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen> {
 
                     return RepaintBoundary(
                       child: RiskAlertCard(
-                        name: data['name'] ?? "Emergency Alert",
+                        name: data['name'] ?? data['victimName'] ?? "Emergency Alert",
                         timeText: timeText,
                         riskLevel: data['riskLevel']?.toString() ?? "Low",
                         acceptedBy: data['acceptedBy'],

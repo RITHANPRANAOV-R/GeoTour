@@ -156,17 +156,20 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
             ? LatLng(geoPoint.latitude, geoPoint.longitude)
             : null;
 
-        if (victimPos != null && _currentVictimPos != victimPos) {
-          _currentVictimPos = victimPos;
-          _updateRouteIfNeeded();
-        }
-
-        if (_isFirstLoad && victimPos != null) {
-          _isFirstLoad = false;
-          Future.delayed(const Duration(milliseconds: 500), () {
-            if (mounted) _mapController.move(victimPos, 15.0);
-          });
-        }
+        // Defer state mutations to after the current frame to prevent layout assertion errors
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          if (victimPos != null && _currentVictimPos != victimPos) {
+            _currentVictimPos = victimPos;
+            _updateRouteIfNeeded();
+          }
+          if (_isFirstLoad && victimPos != null) {
+            _isFirstLoad = false;
+            Future.delayed(const Duration(milliseconds: 300), () {
+              if (mounted) _mapController.move(victimPos, 15.0);
+            });
+          }
+        });
 
         return Scaffold(
           extendBody: true,
@@ -199,16 +202,27 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
               Padding(
                 padding: const EdgeInsets.only(right: 16.0),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
-                    color: _getRiskColor(data['riskLevel']?.toString() ?? "High").withValues(alpha: 0.1),
+                    color: _getRiskColor(
+                      data['riskLevel']?.toString() ?? "High",
+                    ).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: _getRiskColor(data['riskLevel']?.toString() ?? "High").withValues(alpha: 0.2)),
+                    border: Border.all(
+                      color: _getRiskColor(
+                        data['riskLevel']?.toString() ?? "High",
+                      ).withValues(alpha: 0.2),
+                    ),
                   ),
                   child: Text(
                     "${(data['riskLevel']?.toString() ?? "High").toUpperCase()} RISK",
                     style: TextStyle(
-                      color: _getRiskColor(data['riskLevel']?.toString() ?? "High"),
+                      color: _getRiskColor(
+                        data['riskLevel']?.toString() ?? "High",
+                      ),
                       fontWeight: FontWeight.w700,
                       fontSize: 10,
                     ),
@@ -852,15 +866,26 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
 
   Widget _buildDetailCard(Map<String, dynamic> data) {
     final String victimId = data['userId'] ?? data['victimId'] ?? '';
-    
+
     return FutureBuilder<DocumentSnapshot>(
-      future: FirebaseFirestore.instance.collection('tourists').doc(victimId).get(),
+      future: FirebaseFirestore.instance
+          .collection('tourists')
+          .doc(victimId)
+          .get(),
       builder: (context, snapshot) {
         final touristData = snapshot.data?.data() as Map<String, dynamic>?;
         final phone = data['phone'] ?? touristData?['phone'] ?? "N/A";
-        final erData = touristData?['emergencyContact'] as Map<String, dynamic>?;
+        final erData =
+            touristData?['emergencyContact'] as Map<String, dynamic>?;
         final contacts = data['contacts'] ?? erData?['phone'] ?? "N/A";
-        final touristId = data['touristId'] ?? touristData?['touristId'] ?? "N/A";
+        final touristId =
+            data['touristId'] ?? touristData?['touristId'] ?? "N/A";
+        // Resolve name from all possible fields across alert doc and tourist profile
+        final String victimName = data['name'] ??
+            data['victimName'] ??
+            touristData?['username'] ??
+            touristData?['name'] ??
+            'Unknown';
 
         return Container(
           decoration: BoxDecoration(
@@ -886,13 +911,9 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
                 _buildInfoRow(
                   Icons.person_outline,
                   "Victim",
-                  data['name'] ?? "Unknown",
+                  victimName,
                 ),
-                _buildInfoRow(
-                  Icons.badge_outlined,
-                  "Tourist ID",
-                  touristId,
-                ),
+                _buildInfoRow(Icons.badge_outlined, "Tourist ID", touristId),
                 const Divider(height: 32, thickness: 0.5),
                 _buildInfoRow(
                   Icons.warning_amber_rounded,
@@ -900,11 +921,7 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
                   data['threat'] ?? "Risk Zone Entry",
                 ),
                 const Divider(height: 32, thickness: 0.5),
-                _buildInfoRow(
-                  Icons.phone_outlined,
-                  "Phone",
-                  phone,
-                ),
+                _buildInfoRow(Icons.phone_outlined, "Phone", phone),
                 const Divider(height: 32, thickness: 0.5),
                 _buildInfoRow(
                   Icons.contact_phone_outlined,

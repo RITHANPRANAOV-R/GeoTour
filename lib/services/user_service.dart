@@ -39,6 +39,8 @@ class UserService {
     } else if (role == "police") {
       initialData["name"] = email.split('@')[0];
       initialData["badgeNumber"] = "PENDING";
+      initialData["isAvailable"] = false;
+      initialData["status"] = "offline";
     }
 
     await _db.collection(roleCollection).doc(uid).set(initialData, SetOptions(merge: true));
