@@ -726,7 +726,9 @@ class _EmergencyResponseScreenState extends State<EmergencyResponseScreen>
         final data = snapshot.data?.data() as Map<String, dynamic>?;
         final status = data?['status'] ?? 'pending';
         final officerName = data?['acceptedByName'];
+        final bool isCompleted = status == 'completed';
         final bool isAssigned =
+            !isCompleted &&
             (activeAlertId != null && data != null) &&
             (status == 'assigned' || officerName != null);
 

@@ -159,10 +159,20 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
         // Defer state mutations to after the current frame to prevent layout assertion errors
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
-          if (victimPos != null && _currentVictimPos != victimPos) {
-            _currentVictimPos = victimPos;
+          
+          bool shouldUpdateRoute = false;
+          if (victimPos != null) {
+            if (_currentVictimPos == null ||
+                const Distance().as(LengthUnit.Meter, _currentVictimPos!, victimPos) > 10) {
+              _currentVictimPos = victimPos;
+              shouldUpdateRoute = true;
+            }
+          }
+
+          if (shouldUpdateRoute) {
             _updateRouteIfNeeded();
           }
+
           if (_isFirstLoad && victimPos != null) {
             _isFirstLoad = false;
             Future.delayed(const Duration(milliseconds: 300), () {
@@ -235,18 +245,19 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
+                SizedBox(
                   height: MediaQuery.of(context).size.height * 0.45,
                   width: double.infinity,
-                  child: Stack(
-                    children: [
-                      FlutterMap(
-                        mapController: _mapController,
-                        options: MapOptions(
-                          initialCenter: victimPos ?? const LatLng(0, 0),
-                          initialZoom: 15.0,
-                        ),
-                        children: [
+                  child: ClipRect(
+                    child: Stack(
+                      children: [
+                        FlutterMap(
+                            mapController: _mapController,
+                            options: MapOptions(
+                              initialCenter: victimPos ?? const LatLng(0, 0),
+                              initialZoom: 15.0,
+                            ),
+                            children: [
                           TileLayer(
                             urlTemplate:
                                 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -316,7 +327,7 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
                               ],
                             ),
                         ],
-                      ),
+                        ),
                       if (_distance != null)
                         Positioned(
                           top: 16,
@@ -389,6 +400,7 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
                     ],
                   ),
                 ),
+              ),
                 Padding(
                   padding: const EdgeInsets.all(20),
                   child: Column(
