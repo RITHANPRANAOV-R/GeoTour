@@ -113,19 +113,23 @@ class _GeofenceManagementScreenState extends State<GeofenceManagementScreen> {
                 "Zone Type",
                 style: TextStyle(fontWeight: FontWeight.w700),
               ),
-              Radio<String>(
-                value: 'risk',
-                groupValue: zoneType,
-                onChanged: (val) => setSheetState(() => zoneType = val!),
+              Row(
+                children: [
+                  Radio<String>(
+                    value: 'risk',
+                    groupValue: zoneType,
+                    onChanged: (val) => setSheetState(() => zoneType = val!),
+                  ),
+                  const Text("Risk", style: TextStyle(fontSize: 14)),
+                  const SizedBox(width: 12),
+                  Radio<String>(
+                    value: 'restricted',
+                    groupValue: zoneType,
+                    onChanged: (val) => setSheetState(() => zoneType = val!),
+                  ),
+                  const Text("Restricted", style: TextStyle(fontSize: 14)),
+                ],
               ),
-              const Text("Risk", style: TextStyle(fontSize: 14)),
-              const SizedBox(width: 12),
-              Radio<String>(
-                value: 'restricted',
-                groupValue: zoneType,
-                onChanged: (val) => setSheetState(() => zoneType = val!),
-              ),
-              const Text("Restricted", style: TextStyle(fontSize: 14)),
               if (zoneType == 'risk') ...[
                 const SizedBox(height: 16),
                 TextField(
@@ -220,6 +224,190 @@ class _GeofenceManagementScreenState extends State<GeofenceManagementScreen> {
                   ),
                   child: const Text(
                     "SAVE RISK ZONE",
+                    style: TextStyle(fontWeight: FontWeight.w900),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showEditZoneSheet(Map<String, dynamic> zone) {
+    final nameController = TextEditingController(text: zone['name']);
+    final maxTimeController = TextEditingController(text: zone['maxTime']?.toString() ?? "30");
+    double radius = (zone['radius'] as num).toDouble();
+    String severity = zone['severity'] ?? 'high';
+    String zoneType = zone['type'] ?? 'risk'; // 'risk' or 'restricted'
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheetState) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+          ),
+          padding: EdgeInsets.only(
+            top: 32,
+            left: 24,
+            right: 24,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 32,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "Edit Risk Zone",
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -1,
+                ),
+              ),
+              const SizedBox(height: 24),
+              TextField(
+                controller: nameController,
+                decoration: InputDecoration(
+                  labelText: "Zone Name",
+                  hintText: "e.g., Landslide Hill, High Water Area",
+                  prefixIcon: const Icon(Icons.label_important_outline),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                "Radius: ${radius.toInt()} meters",
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+              Slider(
+                value: radius,
+                min: 100,
+                max: 5000,
+                divisions: 49,
+                activeColor: Colors.black,
+                onChanged: (val) => setSheetState(() => radius = val),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                "Zone Type",
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+              Row(
+                children: [
+                  Radio<String>(
+                    value: 'risk',
+                    groupValue: zoneType,
+                    onChanged: (val) => setSheetState(() => zoneType = val!),
+                  ),
+                  const Text("Risk", style: TextStyle(fontSize: 14)),
+                  const SizedBox(width: 12),
+                  Radio<String>(
+                    value: 'restricted',
+                    groupValue: zoneType,
+                    onChanged: (val) => setSheetState(() => zoneType = val!),
+                  ),
+                  const Text("Restricted", style: TextStyle(fontSize: 14)),
+                ],
+              ),
+              if (zoneType == 'risk') ...[
+                const SizedBox(height: 16),
+                TextField(
+                  controller: maxTimeController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: "Max Time (Minutes)",
+                    hintText: "e.g., 30",
+                    prefixIcon: const Icon(Icons.timer_outlined),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 16),
+              const Text(
+                "Severity Level",
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: ['low', 'medium', 'high', 'extreme'].map((s) {
+                  bool isSelected = severity == s;
+                  return GestureDetector(
+                    onTap: () => setSheetState(() => severity = s),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? _getSeverityColor(s)
+                            : Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isSelected
+                              ? _getSeverityColor(s)
+                              : Colors.transparent,
+                        ),
+                      ),
+                      child: Text(
+                        s.toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                          color: isSelected ? Colors.white : Colors.grey,
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    if (nameController.text.trim().isEmpty) return;
+                    await _riskZoneService.updateRiskZone(
+                      zone['id'],
+                      name: nameController.text.trim(),
+                      radius: radius,
+                      severity: severity,
+                      type: zoneType,
+                      maxTime: zoneType == 'risk'
+                          ? int.tryParse(maxTimeController.text)
+                          : null,
+                    );
+                    if (mounted) {
+                      Navigator.pop(context);
+                      PremiumToast.show(
+                        context,
+                        title: "Zone Updated",
+                        message: "The risk zone has been successfully updated.",
+                        type: ToastType.success,
+                      );
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: const Text(
+                    "UPDATE RISK ZONE",
                     style: TextStyle(fontWeight: FontWeight.w900),
                   ),
                 ),
@@ -386,13 +574,25 @@ class _GeofenceManagementScreenState extends State<GeofenceManagementScreen> {
                                 subtitle: Text(
                                   "${z['radius'].toInt()}m • ${z['severity']} • ${z['type'] ?? 'risk'}",
                                 ),
-                                trailing: IconButton(
-                                  icon: const Icon(
-                                    Icons.delete_sweep_outlined,
-                                    color: Colors.red,
-                                  ),
-                                  onPressed: () =>
-                                      _riskZoneService.deleteRiskZone(z['id']),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(
+                                        Icons.edit_outlined,
+                                        color: Colors.blue,
+                                      ),
+                                      onPressed: () => _showEditZoneSheet(z),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(
+                                        Icons.delete_sweep_outlined,
+                                        color: Colors.red,
+                                      ),
+                                      onPressed: () =>
+                                          _riskZoneService.deleteRiskZone(z['id']),
+                                    ),
+                                  ],
                                 ),
                                 onTap: () {
                                   _mapController.move(

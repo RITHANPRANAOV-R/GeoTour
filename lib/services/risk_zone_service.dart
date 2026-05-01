@@ -60,11 +60,15 @@ class RiskZoneService {
     String? name,
     double? radius,
     String? severity,
+    String? type,
+    int? maxTime,
   }) async {
     final updates = <String, dynamic>{};
     if (name != null) updates['name'] = name;
     if (radius != null) updates['radius'] = radius;
     if (severity != null) updates['severity'] = severity;
+    if (type != null) updates['type'] = type;
+    if (maxTime != null) updates['maxTime'] = maxTime;
     if (updates.isNotEmpty) {
       await _db.collection('riskZones').doc(id).update(updates);
     }
