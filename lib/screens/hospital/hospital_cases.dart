@@ -4,13 +4,28 @@ import '../../services/auth_service.dart';
 import '../../services/hospital_service.dart';
 import 'patient_details.dart';
 
-class HospitalCasesScreen extends StatelessWidget {
+class HospitalCasesScreen extends StatefulWidget {
   const HospitalCasesScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  State<HospitalCasesScreen> createState() => _HospitalCasesScreenState();
+}
+
+class _HospitalCasesScreenState extends State<HospitalCasesScreen> {
+  Stream<QuerySnapshot>? _casesStream;
+
+  @override
+  void initState() {
+    super.initState();
     final user = AuthService().currentUser;
     final hospitalService = HospitalService();
+    if (user != null) {
+      _casesStream = hospitalService.getHospitalCasesStream(user.uid);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
@@ -31,9 +46,7 @@ class HospitalCasesScreen extends StatelessWidget {
               ),
             ),
             StreamBuilder<QuerySnapshot>(
-              stream: user != null
-                  ? hospitalService.getHospitalCasesStream(user.uid)
-                  : null,
+              stream: _casesStream,
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
                   return Padding(

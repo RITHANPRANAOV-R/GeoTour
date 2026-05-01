@@ -165,6 +165,9 @@ class _EmergencyResponseScreenState extends State<EmergencyResponseScreen>
       // Broadcast to ALL hospitals instead of just one
       const String nearestHospitalId = 'all';
 
+        final ec = touristData?['emergencyContact'] as Map<String, dynamic>?;
+        final contactStr = ec != null ? "${ec['name']} (${ec['phone']})" : null;
+
       await HospitalService().triggerHospitalSOS(
         victimId: user.uid,
         victimName: victimName,
@@ -172,7 +175,7 @@ class _EmergencyResponseScreenState extends State<EmergencyResponseScreen>
         lng: posData.longitude,
         medicalInfo: medicalSummary,
         phone: touristData?['phone'],
-        contacts: touristData?['emergencyContacts'],
+        contacts: contactStr,
         hospitalId: nearestHospitalId,
         riskLevel: riskLevel,
       );
@@ -244,6 +247,9 @@ class _EmergencyResponseScreenState extends State<EmergencyResponseScreen>
         nearestOfficerId = officers.first.uid;
       }
 
+      final ec = touristData?['emergencyContact'] as Map<String, dynamic>?;
+      final contactStr = ec != null ? "${ec['name']} (${ec['phone']})" : null;
+
       await PoliceService().triggerPoliceSOS(
         victimId: user.uid,
         victimName: touristData?['username'] ?? user.displayName ?? "Tourist",
@@ -253,7 +259,7 @@ class _EmergencyResponseScreenState extends State<EmergencyResponseScreen>
         riskLevel: riskLevel,
         medicalInfo: medicalSummary,
         phone: touristData?['phone'],
-        contacts: touristData?['emergencyContacts'],
+        contacts: contactStr,
         officerId: nearestOfficerId,
         touristId: touristData?['touristId'],
       );

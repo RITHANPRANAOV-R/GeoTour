@@ -16,6 +16,23 @@ class _HospitalHomeContentState extends State<HospitalHomeContent> {
   String _activeFilter = "Unaccepted";
   final List<String> _filters = ["Unaccepted", "Ongoing", "Extreme", "All"];
 
+  Stream<DocumentSnapshot>? _hospitalStream;
+  Stream<QuerySnapshot>? _alertsStream;
+
+  @override
+  void initState() {
+    super.initState();
+    final user = AuthService().currentUser;
+    final hospitalService = HospitalService();
+    if (user != null) {
+      _hospitalStream = FirebaseFirestore.instance
+          .collection('hospitals')
+          .doc(user.uid)
+          .snapshots();
+      _alertsStream = hospitalService.getGlobalHospitalAlertsStream(user.uid);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = AuthService().currentUser;
@@ -31,12 +48,7 @@ class _HospitalHomeContentState extends State<HospitalHomeContent> {
             Padding(
               padding: const EdgeInsets.all(24.0),
               child: StreamBuilder<DocumentSnapshot>(
-                stream: user != null
-                    ? FirebaseFirestore.instance
-                          .collection('hospitals')
-                          .doc(user.uid)
-                          .snapshots()
-                    : null,
+                stream: _hospitalStream,
                 builder: (context, snapshot) {
                   String name = "Hospital";
                   bool isAvailable = false;
@@ -170,7 +182,7 @@ class _HospitalHomeContentState extends State<HospitalHomeContent> {
                     ),
                   ),
                   StreamBuilder<QuerySnapshot>(
-                    stream: user != null ? hospitalService.getGlobalHospitalAlertsStream(user.uid) : null,
+                    stream: _alertsStream,
                     builder: (context, snap) {
                       final count = snap.data?.docs.length ?? 0;
                       return Text(
@@ -184,9 +196,7 @@ class _HospitalHomeContentState extends State<HospitalHomeContent> {
             ),
             const SizedBox(height: 12),
             StreamBuilder<QuerySnapshot>(
-              stream: user != null
-                  ? hospitalService.getGlobalHospitalAlertsStream(user.uid)
-                  : null,
+              stream: _alertsStream,
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
                   return Padding(
@@ -241,6 +251,12 @@ class _HospitalHomeContentState extends State<HospitalHomeContent> {
                 }
 
                 var alerts = snapshot.data?.docs ?? [];
+
+                // Always exclude completed and transferred from active dashboard
+                alerts = alerts.where((d) {
+                  final status = (d.data() as Map)['status'] as String?;
+                  return status != 'completed' && status != 'transferred';
+                }).toList();
 
                 // Filter logic
                 if (_activeFilter == "Unaccepted") {

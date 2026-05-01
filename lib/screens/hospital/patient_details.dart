@@ -541,9 +541,14 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
   Future<void> _transferCase() async {
     if (user == null) return;
 
+    final List<String> excludeIds = [user!.uid];
+    if (widget.alertData['transferredFrom'] != null) {
+      excludeIds.add(widget.alertData['transferredFrom']);
+    }
+
     final result = await showDialog<HospitalModel>(
       context: context,
-      builder: (context) => TransferDialog(currentHospitalId: user!.uid),
+      builder: (context) => TransferDialog(excludeHospitalIds: excludeIds),
     );
 
     if (result != null) {

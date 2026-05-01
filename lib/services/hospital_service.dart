@@ -50,23 +50,32 @@ class HospitalService {
   }
 
   Future<void> acceptCase(String hospitalId, String alertId) async {
+    // Fetch global alert to ensure we have the full data for the subcollection
+    final globalAlert = await _firestore.collection('hospital_alerts').doc(alertId).get();
+    
+    if (!globalAlert.exists) throw Exception("Alert not found");
+    
+    final alertData = globalAlert.data()!;
+    alertData['status'] = 'ongoing';
+    alertData['acceptedAt'] = FieldValue.serverTimestamp();
+    alertData['targetHospitalId'] = hospitalId;
+
     final batch = _firestore.batch();
     
-    // 1. Update hospital sub-collection
-    batch.update(
+    // 1. Update hospital sub-collection with full data so Cases tab displays correctly
+    batch.set(
       _firestore.collection('hospitals').doc(hospitalId).collection('alerts').doc(alertId),
-      {
-        'status': 'ongoing',
-        'acceptedAt': FieldValue.serverTimestamp(),
-      }
+      alertData,
+      SetOptions(merge: true)
     );
 
-    // 2. Update global hospital_alerts collection
+    // 2. Update global hospital_alerts collection to claim the case
     batch.update(
       _firestore.collection('hospital_alerts').doc(alertId),
       {
         'status': 'ongoing',
         'acceptedAt': FieldValue.serverTimestamp(),
+        'targetHospitalId': hospitalId,
       }
     );
 
@@ -136,6 +145,17 @@ class HospitalService {
 
     batch.set(newRef, newData);
 
+    // 3. Update global hospital_alerts so the new hospital sees it
+    batch.update(
+      _firestore.collection('hospital_alerts').doc(alertId),
+      {
+        'status': 'pending',
+        'targetHospitalId': toHospitalId,
+        'transferredFrom': fromHospitalId,
+        'timestamp': FieldValue.serverTimestamp(),
+      }
+    );
+
     await batch.commit();
   }
 
@@ -172,13 +192,15 @@ class HospitalService {
 
       debugPrint("Dispatched Hospital SOS to Hospital ID: $hospitalId");
 
-      // 2. Also add to the specific hospital's alerts sub-collection
-      await _firestore
-          .collection('hospitals')
-          .doc(hospitalId)
-          .collection('alerts')
-          .doc(alertDoc.id)
-          .set(alertData);
+      // 2. Also add to the specific hospital's alerts sub-collection if not 'all'
+      if (hospitalId != 'all') {
+        await _firestore
+            .collection('hospitals')
+            .doc(hospitalId)
+            .collection('alerts')
+            .doc(alertDoc.id)
+            .set(alertData);
+      }
 
       // 3. Add to user's alert history
       await _firestore
