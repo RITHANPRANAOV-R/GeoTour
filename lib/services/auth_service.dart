@@ -22,6 +22,15 @@ class AuthService {
       email: email,
       password: password,
     );
+    
+    if (userCredential.user != null) {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).get();
+      if (doc.exists && doc.data()?['isBlocked'] == true) {
+        await _auth.signOut();
+        throw FirebaseAuthException(code: 'user-blocked', message: 'Your account has been blocked by the administrator.');
+      }
+    }
+    
     return userCredential.user;
   }
 
@@ -50,7 +59,18 @@ class AuthService {
         credential,
       );
 
+      if (userCredential.user != null) {
+        final doc = await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).get();
+        if (doc.exists && doc.data()?['isBlocked'] == true) {
+          await _auth.signOut();
+          await googleSignIn.signOut();
+          throw FirebaseAuthException(code: 'user-blocked', message: 'Your account has been blocked by the administrator.');
+        }
+      }
+
       return userCredential.user;
+    } on FirebaseAuthException catch (e) {
+      rethrow;
     } catch (e) {
       return null;
     }

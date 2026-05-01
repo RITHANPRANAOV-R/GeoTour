@@ -80,4 +80,8 @@ class UserService {
   Future<void> switchRole(String uid, String newRole) async {
     await _db.collection("users").doc(uid).update({"activeRole": newRole});
   }
+
+  Future<void> toggleUserBlock(String uid, bool isBlocked) async {
+    await _db.collection("users").doc(uid).update({"isBlocked": isBlocked});
+  }
 }

@@ -13,6 +13,7 @@ class _IncidentLogsScreenState extends State<IncidentLogsScreen> {
   final AdminAPIService _apiService = AdminAPIService();
   List<dynamic> _incidents = [];
   bool _isLoading = true;
+  String _selectedFilter = 'all';
 
   @override
   void initState() {
@@ -30,6 +31,14 @@ class _IncidentLogsScreenState extends State<IncidentLogsScreen> {
   }
   @override
   Widget build(BuildContext context) {
+    final filteredIncidents = _incidents.where((log) {
+      if (_selectedFilter == 'all') return true;
+      final type = (log['type'] ?? 'notification').toString().toLowerCase();
+      if (_selectedFilter == 'medical') return type.contains('medical');
+      if (_selectedFilter == 'police') return type == 'threat' || type == 'accident';
+      return type == _selectedFilter;
+    }).toList();
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
@@ -66,19 +75,65 @@ class _IncidentLogsScreenState extends State<IncidentLogsScreen> {
       ),
       body: Column(
         children: [
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                {'key': 'all', 'label': 'All'},
+                {'key': 'police', 'label': 'Police (Threats/Accidents)'},
+                {'key': 'medical', 'label': 'Medical'},
+                {'key': 'geo-fence violation', 'label': 'Geo-Fence'},
+              ].map((filter) {
+                final isSelected = _selectedFilter == filter['key'];
+                Color filterColor = Colors.black;
+                if (filter['key'] == 'police') filterColor = Colors.red;
+                if (filter['key'] == 'medical') filterColor = Colors.blue;
+                if (filter['key'] == 'geo-fence violation') filterColor = Colors.purple;
+                
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: FilterChip(
+                    label: Text(
+                      filter['label']!,
+                      style: TextStyle(
+                        color: isSelected ? Colors.white : filterColor,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 12,
+                      ),
+                    ),
+                    selected: isSelected,
+                    onSelected: (selected) {
+                      setState(() => _selectedFilter = filter['key']!);
+                    },
+                    backgroundColor: filterColor.withValues(alpha: 0.05),
+                    selectedColor: filterColor,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(
+                        color: isSelected ? filterColor : filterColor.withValues(alpha: 0.2),
+                      ),
+                    ),
+                    showCheckmark: false,
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
-                : _incidents.isEmpty
+                : filteredIncidents.isEmpty
                 ? const Center(child: Text("No incidents logged."))
                 : ListView.separated(
                     physics: const BouncingScrollPhysics(),
                     padding: const EdgeInsets.all(16),
-                    itemCount: _incidents.length,
+                    itemCount: filteredIncidents.length,
                     separatorBuilder: (context, index) =>
                         const SizedBox(height: 12),
                     itemBuilder: (context, index) {
-                      final log = _incidents[index];
+                      final log = filteredIncidents[index];
                       final typeColor = _getStatusColor(
                         log['type'] ?? 'default',
                       );

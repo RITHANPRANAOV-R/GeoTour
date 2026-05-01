@@ -146,6 +146,7 @@ class AdminAPIService {
               (data['roles'] is List && (data['roles'] as List).isNotEmpty
                   ? data['roles'][0]
                   : 'tourist'),
+          'isBlocked': data['isBlocked'] ?? false,
         };
 
         if (existingIndex != -1) {
