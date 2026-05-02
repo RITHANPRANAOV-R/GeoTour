@@ -190,8 +190,7 @@ class GeoService extends ChangeNotifier {
     _positionStream = Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
         accuracy: LocationAccuracy.bestForNavigation,
-        distanceFilter: 10,
-        timeLimit: Duration(seconds: 30),
+        distanceFilter: 2, // High frequency for navigation
       ),
     ).listen((Position position) {
       if (!_isManualOverride) {

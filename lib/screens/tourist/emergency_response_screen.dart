@@ -1,4 +1,6 @@
 import 'dart:ui';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/alert_service.dart';
@@ -33,6 +35,12 @@ class _EmergencyResponseScreenState extends State<EmergencyResponseScreen>
   String? selectedRisk;
   String? activeAlertId;
   bool sosTriggered = false;
+
+  List<LatLng> _routePoints = [];
+  String? _distance;
+  String? _duration;
+  bool _isLoadingRoute = false;
+  LatLng? _lastRouteUpdatePos;
 
   @override
   void initState() {
@@ -78,6 +86,53 @@ class _EmergencyResponseScreenState extends State<EmergencyResponseScreen>
     AlertService().removeListener(_checkActiveAlerts);
     _tabController.dispose();
     super.dispose();
+  }
+
+  void _updateRouteIfNeeded(LatLng userPos, LatLng responderPos) {
+    if (_lastRouteUpdatePos == null ||
+        Distance().as(LengthUnit.Meter, _lastRouteUpdatePos!, responderPos) > 15) {
+      _lastRouteUpdatePos = responderPos;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _getRoute(userPos, responderPos);
+        }
+      });
+    }
+  }
+
+  Future<void> _getRoute(LatLng start, LatLng end) async {
+    if (_isLoadingRoute) return;
+    setState(() => _isLoadingRoute = true);
+
+    final url = Uri.parse(
+      'https://router.project-osrm.org/route/v1/driving/'
+      '${start.longitude},${start.latitude};${end.longitude},${end.latitude}'
+      '?overview=full&geometries=geojson',
+    );
+
+    try {
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['routes'] != null && data['routes'].isNotEmpty) {
+          final route = data['routes'][0];
+          final geometry = route['geometry']['coordinates'] as List;
+
+          if (mounted) {
+            setState(() {
+              _routePoints = geometry
+                  .map((coord) => LatLng(coord[1], coord[0]))
+                  .toList();
+              _distance = (route['distance'] / 1000).toStringAsFixed(1) + " km";
+              _duration = (route['duration'] / 60).toStringAsFixed(0) + " min";
+              _isLoadingRoute = false;
+            });
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoadingRoute = false);
+    }
   }
 
   void _triggerSOS(String risk) async {
@@ -1108,6 +1163,10 @@ class _EmergencyResponseScreenState extends State<EmergencyResponseScreen>
             ? LatLng(pos.latitude, pos.longitude)
             : null;
 
+        if (userLatLng != null && responderPos != null) {
+          _updateRouteIfNeeded(userLatLng, responderPos);
+        }
+
         return Container(
           width: double.infinity,
           padding: const EdgeInsets.all(20),
@@ -1151,37 +1210,57 @@ class _EmergencyResponseScreenState extends State<EmergencyResponseScreen>
                       ),
                     ],
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            color: Colors.blue,
-                            shape: BoxShape.circle,
-                          ),
+                  if (_distance != null && _duration != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        "$_distance • $_duration",
+                        style: const TextStyle(
+                          color: Colors.blue,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
                         ),
-                        const SizedBox(width: 6),
-                        const Text(
-                          "GPS LIVE",
-                          style: TextStyle(
-                            color: Colors.blue,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 10,
+                      ),
+                    )
+                  else
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: const BoxDecoration(
+                              color: Colors.blue,
+                              shape: BoxShape.circle,
+                            ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 6),
+                          const Text(
+                            "GPS LIVE",
+                            style: TextStyle(
+                              color: Colors.blue,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
                 ],
               ),
               const SizedBox(height: 20),
@@ -1228,7 +1307,17 @@ class _EmergencyResponseScreenState extends State<EmergencyResponseScreen>
                             ),
                         ],
                       ),
-                      if (userLatLng != null && responderPos != null)
+                      if (_routePoints.isNotEmpty)
+                        PolylineLayer(
+                          polylines: [
+                            Polyline(
+                              points: _routePoints,
+                              color: Colors.blueAccent,
+                              strokeWidth: 5,
+                            ),
+                          ],
+                        )
+                      else if (userLatLng != null && responderPos != null)
                         PolylineLayer(
                           polylines: [
                             Polyline(

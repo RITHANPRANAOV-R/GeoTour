@@ -29,6 +29,9 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
   final PoliceService _policeService = PoliceService();
   bool _isFirstLoad = true;
   List<LatLng> _routePoints = [];
+
+  LatLng? _savedCenter;
+  double _savedZoom = 15.0;
   String? _distance;
   String? _duration;
   bool _isLoadingRoute = false;
@@ -39,6 +42,14 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
   void initState() {
     super.initState();
     GeoService().startMonitoring();
+    
+    // Seed initial position so the route draws instantly without waiting for movement
+    final pos = GeoService().currentPosition;
+    if (pos != null) {
+      _lastPolicePos = LatLng(pos.latitude, pos.longitude);
+      _lastRouteUpdatePos = _lastPolicePos;
+    }
+    
     GeoService().addListener(_handleLocationUpdate);
   }
 
@@ -52,13 +63,25 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
     final pos = GeoService().currentPosition;
     if (pos != null) {
       final newPos = LatLng(pos.latitude, pos.longitude);
+      
+      // Update marker position more frequently (every 2 meters) for smooth movement
       if (_lastPolicePos == null ||
-          Distance().as(LengthUnit.Meter, _lastPolicePos!, newPos) > 10) {
-        _lastPolicePos = newPos;
-        _updateRouteIfNeeded();
+          Distance().as(LengthUnit.Meter, _lastPolicePos!, newPos) > 2) {
+        setState(() {
+          _lastPolicePos = newPos;
+        });
+        
+        // Recalculate route only when significant movement (15m) occurs to save battery/data
+        if (_lastRouteUpdatePos == null || 
+            Distance().as(LengthUnit.Meter, _lastRouteUpdatePos!, newPos) > 15) {
+          _lastRouteUpdatePos = newPos;
+          _updateRouteIfNeeded();
+        }
       }
     }
   }
+
+  LatLng? _lastRouteUpdatePos;
 
   LatLng? _currentVictimPos;
 
@@ -66,6 +89,18 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
     if (_lastPolicePos != null && _currentVictimPos != null) {
       _getRoute(_lastPolicePos!, _currentVictimPos!);
     }
+  }
+
+  void _recenterMap() {
+    if (_currentVictimPos != null) {
+      _mapController.move(_currentVictimPos!, 15.0);
+    }
+    
+    // Force route recalculation and marker update
+    setState(() {
+      _lastRouteUpdatePos = null;
+    });
+    _updateRouteIfNeeded();
   }
 
   Future<void> _getRoute(LatLng start, LatLng end) async {
@@ -293,7 +328,13 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
                   top: MediaQuery.of(context).padding.top + 16,
                   left: 16,
                   child: GestureDetector(
-                    onTap: () => setState(() => _isFullScreen = false),
+                    onTap: () {
+                      try {
+                        _savedCenter = _mapController.camera.center;
+                        _savedZoom = _mapController.camera.zoom;
+                      } catch (_) {}
+                      setState(() => _isFullScreen = false);
+                    },
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
@@ -310,6 +351,93 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
                     ),
                   ),
                 ),
+
+            // Full Screen Toggle Button (Always on top)
+            Positioned(
+              top: _isFullScreen
+                  ? MediaQuery.of(context).padding.top + 16
+                  : 16, // Body relative
+              right: 16,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      try {
+                        _savedCenter = _mapController.camera.center;
+                        _savedZoom = _mapController.camera.zoom;
+                      } catch (_) {}
+                      setState(() => _isFullScreen = !_isFullScreen);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.15),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            _isFullScreen
+                                ? Icons.fullscreen_exit_rounded
+                                : Icons.fullscreen_rounded,
+                            color: Colors.black,
+                            size: 22,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            _isFullScreen ? "EXIT" : "TACTICAL MAP",
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  
+                  // Map Refresh Button
+                  GestureDetector(
+                    onTap: _recenterMap,
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.15),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: const Icon(
+                        Icons.my_location_rounded,
+                        color: Colors.blue,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             ],
           ),
           bottomNavigationBar: _isFullScreen ? null : _buildBottomActions(context, alertId, data, user),
@@ -325,8 +453,11 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
             FlutterMap(
               mapController: _mapController,
               options: MapOptions(
-                initialCenter: victimPos ?? const LatLng(0, 0),
-                initialZoom: 15.0,
+                initialCenter: _savedCenter ?? victimPos ?? const LatLng(0, 0),
+                initialZoom: _savedZoom,
+                interactionOptions: const InteractionOptions(
+                  flags: InteractiveFlag.all,
+                ),
               ),
               children: [
                 TileLayer(
@@ -424,32 +555,6 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
                 ),
               ),
             
-            // Full Screen Toggle
-            Positioned(
-              top: _isFullScreen ? MediaQuery.of(context).padding.top + 16 : 16,
-              right: 16,
-              child: GestureDetector(
-                onTap: () => setState(() => _isFullScreen = !_isFullScreen),
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 4,
-                      ),
-                    ],
-                  ),
-                  child: Icon(
-                    _isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen,
-                    color: Colors.black,
-                  ),
-                ),
-              ),
-            ),
-
             if (victimPos != null)
               Positioned(
                 bottom: _isFullScreen ? MediaQuery.of(context).padding.bottom + 100 : 16,
