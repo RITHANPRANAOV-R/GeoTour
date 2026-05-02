@@ -283,8 +283,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _handleStartMonitoring({bool isInitial = false}) async {
-    final status = await GeoService().startMonitoring();
+  Future<void> _handleStartMonitoring({bool isInitial = false, bool forceRestart = false}) async {
+    final status = await GeoService().startMonitoring(forceRestart: forceRestart);
     if (status != LocationStatus.enabled &&
         (!isInitial || status != LocationStatus.permissionDenied)) {
       // Don't show annoying popup on first open if it's just 'denied' (system will ask)
@@ -628,13 +628,29 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                           ),
                           Row(
                             children: [
-                              Text(
-                                "Testing Mode",
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: GeoService().isManualOverride ? Colors.redAccent : Colors.grey,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                              Builder(
+                                builder: (context) {
+                                  if (GeoService().isManualOverride) {
+                                    return const Text(
+                                      "Manual GPS",
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: Colors.redAccent,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    );
+                                  } else {
+                                    final bool isLive = GeoService().isServiceEnabled && GeoService().currentPosition != null;
+                                    return Text(
+                                      isLive ? "LIVE GPS" : "GPS NOT DETECTED",
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: isLive ? Colors.green : Colors.grey,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    );
+                                  }
+                                },
                               ),
                               Transform.scale(
                                 scale: 0.65,
@@ -646,13 +662,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                       GeoService().setManualOverrideStatus(true);
                                       PremiumToast.show(
                                         context,
-                                        title: "Spoofing Enabled",
-                                        message: "Hardware GPS disabled. Tap 'Explore Map' to drop testing pins.",
+                                        title: "Manual GPS Active",
+                                        message: "Hardware GPS paused. Tap 'Explore Map' to drop testing pins.",
                                         type: ToastType.info,
                                       );
                                     } else {
                                       GeoService().setManualOverrideStatus(false);
-                                      _handleStartMonitoring();
+                                      _handleStartMonitoring(forceRestart: true);
                                       _centerMapOnUser();
                                       PremiumToast.show(
                                         context,
@@ -668,7 +684,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                               GestureDetector(
                                 onTap: () {
                                   GeoService().resetManualOverride();
-                                  _handleStartMonitoring();
+                                  _handleStartMonitoring(forceRestart: true);
                                   _centerMapOnUser();
                                   if (mounted) {
                                     PremiumToast.show(

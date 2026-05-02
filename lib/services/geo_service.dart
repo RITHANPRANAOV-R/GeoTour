@@ -23,12 +23,16 @@ class GeoService extends ChangeNotifier {
   GeoService._internal();
 
   bool _isMonitoring = false;
+  bool _isServiceEnabled = false;
   StreamSubscription<Position>? _positionStream;
+  StreamSubscription<ServiceStatus>? _serviceStatusSub;
   StreamSubscription<List<Map<String, dynamic>>>? _riskZonesSub;
   Position? _currentPosition;
   bool _isManualOverride = false;
   Timer? _manualCheckTimer;
   double _warningRange = 500.0; // Default warning range in meters
+
+  bool get isServiceEnabled => _isServiceEnabled;
 
   // Tracking for proximity and time-in-zone
   String? _lastNearZoneId;
@@ -63,14 +67,18 @@ class GeoService extends ChangeNotifier {
 
   void resetManualOverride() {
     _isManualOverride = false;
+    _currentPosition = null; // Clear spoofed position to force fresh fetch
     _manualCheckTimer?.cancel();
-    // We do NOT call notifyListeners here safely to avoid spam loops; 
-    // it will naturally update on the next live fetch anyway, 
-    // but the setManualOverrideStatus does when toggled manually via switch.
+    checkPermissions(); // Re-verify hardware status
+    notifyListeners();
   }
 
   void setManualOverrideStatus(bool status) {
     _isManualOverride = status;
+    if (!status) {
+      _currentPosition = null;
+      checkPermissions();
+    }
     notifyListeners();
   }
 
@@ -98,6 +106,9 @@ class GeoService extends ChangeNotifier {
     LocationPermission permission;
 
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    _isServiceEnabled = serviceEnabled;
+    notifyListeners();
+
     if (!serviceEnabled) return LocationStatus.serviceDisabled;
 
     permission = await Geolocator.checkPermission();
@@ -123,15 +134,45 @@ class GeoService extends ChangeNotifier {
     await Geolocator.openAppSettings();
   }
 
-  Future<LocationStatus> startMonitoring() async {
-    if (_isMonitoring) return LocationStatus.enabled;
+  Future<LocationStatus> startMonitoring({bool forceRestart = false}) async {
+    if (_isMonitoring && !forceRestart) return LocationStatus.enabled;
 
-     LocationStatus status = await checkPermissions();
+    final status = await checkPermissions();
     if (status != LocationStatus.enabled) return status;
 
     _isMonitoring = true;
+    _isServiceEnabled = true;
+    notifyListeners();
 
-    // Start listening to risk zones from Firestore
+    // 1. Listen to service status changes to dynamically resume tracking
+    _serviceStatusSub?.cancel();
+    _serviceStatusSub = Geolocator.getServiceStatusStream().listen((status) {
+      final bool enabled = status == ServiceStatus.enabled;
+      if (enabled != _isServiceEnabled) {
+        _isServiceEnabled = enabled;
+        if (!_isServiceEnabled) {
+          _currentPosition = null;
+        } else if (_isMonitoring) {
+          startMonitoring(forceRestart: true);
+        }
+        notifyListeners();
+      }
+    });
+
+    // 2. Fetch current position once to "wake up" GPS and update status immediately
+    try {
+      Position position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+      );
+      _currentPosition = position;
+      _isServiceEnabled = true;
+      notifyListeners();
+      _checkRiskZones(position);
+    } catch (e) {
+      debugPrint("Initial Position Fetch Error: $e");
+    }
+
+    // 3. Start listening to risk zones from Firestore
     _riskZonesSub?.cancel();
     _riskZonesSub = RiskZoneService().riskZonesStream.listen((zones) {
       _riskZones = zones.map((z) {
@@ -144,41 +185,48 @@ class GeoService extends ChangeNotifier {
       notifyListeners();
     });
 
-    _positionStream =
-        Geolocator.getPositionStream(
-          locationSettings: const LocationSettings(
-            accuracy: LocationAccuracy.bestForNavigation,
-            distanceFilter: 1,
-          ),
-        ).listen((Position position) {
-          if (_isManualOverride) return; // Ignore hardware GPS when spoofing
-          
-          _currentPosition = position;
-          notifyListeners();
+    // 4. Initialize Position Stream
+    _positionStream?.cancel();
+    _positionStream = Geolocator.getPositionStream(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.bestForNavigation,
+        distanceFilter: 10,
+        timeLimit: Duration(seconds: 30),
+      ),
+    ).listen((Position position) {
+      if (!_isManualOverride) {
+        _isServiceEnabled = true; // Heartbeat
+        _currentPosition = position;
+        notifyListeners();
+        
+        _checkRiskZones(position);
+        
+        // Sync location
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+            'latitude': position.latitude,
+            'longitude': position.longitude,
+            'lastUpdated': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true)).catchError((e) => debugPrint("Firestore Sync Error: $e"));
+        }
 
-          // Sync location to users collection for admin monitoring
-          final user = FirebaseAuth.instance.currentUser;
-          if (user != null) {
-            FirebaseFirestore.instance.collection('users').doc(user.uid).set({
-              'latitude': position.latitude,
-              'longitude': position.longitude,
-              'lastUpdated': FieldValue.serverTimestamp(),
-            }, SetOptions(merge: true)).catchError((_) {});
-          }
-
-          // Live Track Victim: Update active alert location in Firestore
-          final activeAlertId = AlertService().activeAlertId;
-          if (activeAlertId != null) {
-            PoliceService().updateAlertLocation(
-              activeAlertId,
-              lat: position.latitude,
-              lng: position.longitude,
-              userId: FirebaseAuth.instance.currentUser?.uid,
-            );
-          }
-
-          _checkRiskZones(position);
-        });
+        // Live Track Victim
+        final activeAlertId = AlertService().activeAlertId;
+        if (activeAlertId != null) {
+          PoliceService().updateAlertLocation(
+            activeAlertId,
+            lat: position.latitude,
+            lng: position.longitude,
+            userId: user?.uid,
+          );
+        }
+      }
+    }, onError: (e) {
+      debugPrint("Position Stream Error: $e");
+      _isServiceEnabled = false;
+      notifyListeners();
+    });
 
     return LocationStatus.enabled;
   }
