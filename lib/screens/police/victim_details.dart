@@ -33,6 +33,7 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
   String? _duration;
   bool _isLoadingRoute = false;
   LatLng? _lastPolicePos;
+  bool _isFullScreen = false;
 
   @override
   void initState() {
@@ -145,6 +146,12 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
     return StreamBuilder<DocumentSnapshot>(
       stream: _policeService.getAlertStream(alertId),
       builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
         Map<String, dynamic> data = widget.victimData;
         if (snapshot.hasData && snapshot.data!.exists) {
           data = snapshot.data!.data() as Map<String, dynamic>;
@@ -156,7 +163,7 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
             ? LatLng(geoPoint.latitude, geoPoint.longitude)
             : null;
 
-        // Defer state mutations to after the current frame to prevent layout assertion errors
+        // Defer state mutations
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
           
@@ -184,7 +191,7 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
         return Scaffold(
           extendBody: true,
           backgroundColor: const Color(0xFFF8F9FA),
-          appBar: AppBar(
+          appBar: _isFullScreen ? null : AppBar(
             backgroundColor: Colors.white,
             elevation: 0,
             scrolledUnderElevation: 0,
@@ -241,196 +248,306 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
               ),
             ],
           ),
-          body: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
-                  height: MediaQuery.of(context).size.height * 0.45,
-                  width: double.infinity,
-                  child: ClipRect(
-                    child: Stack(
-                      children: [
-                        FlutterMap(
-                            mapController: _mapController,
-                            options: MapOptions(
-                              initialCenter: victimPos ?? const LatLng(0, 0),
-                              initialZoom: 15.0,
-                            ),
-                            children: [
-                          TileLayer(
-                            urlTemplate:
-                                'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                            userAgentPackageName: 'com.example.geotour',
-                          ),
-                          if (_routePoints.isNotEmpty)
-                            PolylineLayer(
-                              polylines: [
-                                Polyline(
-                                  points: _routePoints,
-                                  color: Colors.blueAccent,
-                                  strokeWidth: 5,
-                                ),
-                              ],
-                            ),
-                          if (victimPos != null || _lastPolicePos != null)
-                            MarkerLayer(
-                              markers: [
-                                if (victimPos != null)
-                                  Marker(
-                                    point: victimPos,
-                                    width: 80,
-                                    height: 80,
-                                    child: Column(
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 8,
-                                            vertical: 4,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: Colors.black.withValues(
-                                              alpha: 0.8,
-                                            ),
-                                            borderRadius: BorderRadius.circular(
-                                              12,
-                                            ),
-                                          ),
-                                          child: const Text(
-                                            "Victim",
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                        const Icon(
-                                          Icons.location_on,
-                                          color: Colors.red,
-                                          size: 40,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                if (_lastPolicePos != null)
-                                  Marker(
-                                    point: _lastPolicePos!,
-                                    width: 40,
-                                    height: 40,
-                                    child: const Icon(
-                                      Icons.my_location,
-                                      color: Colors.blue,
-                                      size: 30,
-                                    ),
-                                  ),
-                              ],
-                            ),
-                        ],
-                        ),
-                      if (_distance != null)
-                        Positioned(
-                          top: 16,
-                          left: 16,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.1),
-                                  blurRadius: 8,
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(
-                                  Icons.directions_car,
-                                  color: Colors.blue,
-                                  size: 20,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  "$_distance • $_duration",
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      if (victimPos != null)
-                        Positioned(
-                          bottom: 16,
-                          right: 16,
-                          child: ElevatedButton(
-                            onPressed: () => _openInMaps(
-                              victimPos.latitude,
-                              victimPos.longitude,
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.black,
-                              foregroundColor: Colors.white,
-                              elevation: 4,
-                              shadowColor: Colors.black45,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 24,
-                                vertical: 12,
-                              ),
-                              shape: const StadiumBorder(),
-                            ),
-                            child: const Text(
-                              "Navigate",
-                              style: TextStyle(
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 0.5,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-                Padding(
-                  padding: const EdgeInsets.all(20),
+          body: Stack(
+            children: [
+              // Main Content
+              if (!_isFullScreen)
+                SingleChildScrollView(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        "Information",
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
+                      _buildMapSection(context, victimPos, data),
+                      Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              "Information",
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            _buildDetailCard(data),
+                            const SizedBox(height: 24),
+                            _buildMedicalSection(data['userId'] ?? data['victimId']),
+                            const SizedBox(height: 100),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 16),
-                      _buildDetailCard(data),
-                      const SizedBox(height: 24),
-                      _buildMedicalSection(data['userId'] ?? data['victimId']),
-                      const SizedBox(height: 100),
                     ],
                   ),
                 ),
-              ],
-            ),
+
+              // Full Screen Map
+              if (_isFullScreen)
+                Positioned.fill(
+                  child: _buildMapSection(context, victimPos, data),
+                ),
+              
+              // Full Screen Exit Button
+              if (_isFullScreen)
+                Positioned(
+                  top: MediaQuery.of(context).padding.top + 16,
+                  left: 16,
+                  child: GestureDetector(
+                    onTap: () => setState(() => _isFullScreen = false),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.1),
+                            blurRadius: 10,
+                          ),
+                        ],
+                      ),
+                      child: const Icon(Icons.arrow_back_rounded, color: Colors.black),
+                    ),
+                  ),
+                ),
+            ],
           ),
-          bottomNavigationBar: _buildBottomActions(snapshot.data!.id, data, user),
+          bottomNavigationBar: _isFullScreen ? null : _buildBottomActions(context, alertId, data, user),
         );
       },
     );
   }
 
-  Widget _buildBottomActions(String alertId, Map<String, dynamic> data, User? user) {
+  Widget _buildMapSection(BuildContext context, LatLng? victimPos, Map<String, dynamic> data) {
+    final mapWidget = ClipRect(
+        child: Stack(
+          children: [
+            FlutterMap(
+              mapController: _mapController,
+              options: MapOptions(
+                initialCenter: victimPos ?? const LatLng(0, 0),
+                initialZoom: 15.0,
+              ),
+              children: [
+                TileLayer(
+                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  userAgentPackageName: 'com.example.geotour',
+                ),
+                if (_routePoints.isNotEmpty)
+                  PolylineLayer(
+                    polylines: [
+                      Polyline(
+                        points: _routePoints,
+                        color: Colors.blueAccent,
+                        strokeWidth: 5,
+                      ),
+                    ],
+                  ),
+                if (victimPos != null || _lastPolicePos != null)
+                  MarkerLayer(
+                    markers: [
+                      if (victimPos != null)
+                        Marker(
+                          point: victimPos,
+                          width: 80,
+                          height: 80,
+                          child: Column(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.8),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Text(
+                                  "Victim",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              const Icon(
+                                Icons.location_on,
+                                color: Colors.red,
+                                size: 40,
+                              ),
+                            ],
+                          ),
+                        ),
+                      if (_lastPolicePos != null)
+                        Marker(
+                          point: _lastPolicePos!,
+                          width: 40,
+                          height: 40,
+                          child: const Icon(
+                            Icons.my_location,
+                            color: Colors.blue,
+                            size: 30,
+                          ),
+                        ),
+                    ],
+                  ),
+              ],
+            ),
+            if (_distance != null)
+              Positioned(
+                top: _isFullScreen ? MediaQuery.of(context).padding.top + 80 : 16,
+                left: 16,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 8,
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.directions_car, color: Colors.blue, size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        "$_distance • $_duration",
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            
+            // Full Screen Toggle
+            Positioned(
+              top: _isFullScreen ? MediaQuery.of(context).padding.top + 16 : 16,
+              right: 16,
+              child: GestureDetector(
+                onTap: () => setState(() => _isFullScreen = !_isFullScreen),
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 4,
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    _isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen,
+                    color: Colors.black,
+                  ),
+                ),
+              ),
+            ),
+
+            if (victimPos != null)
+              Positioned(
+                bottom: _isFullScreen ? MediaQuery.of(context).padding.bottom + 100 : 16,
+                right: 16,
+                child: ElevatedButton(
+                  onPressed: () => _openInMaps(victimPos.latitude, victimPos.longitude),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black,
+                    foregroundColor: Colors.white,
+                    elevation: 4,
+                    shadowColor: Colors.black45,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: const StadiumBorder(),
+                  ),
+                  child: const Text(
+                    "Navigate",
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.5,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ),
+            
+            if (_isFullScreen)
+               Positioned(
+                bottom: MediaQuery.of(context).padding.bottom + 20,
+                left: 16,
+                right: 16,
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 10),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      const CircleAvatar(
+                        backgroundColor: Colors.red,
+                        child: Icon(Icons.emergency, color: Colors.white),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              data['victimName'] ?? data['name'] ?? "Victim",
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                            ),
+                            Text(
+                              data['details'] ?? "Emergency Alert",
+                              style: const TextStyle(color: Colors.grey, fontSize: 12),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.chat_bubble_rounded, color: Colors.blue),
+                        onPressed: () {
+                           Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => PoliceChatScreen(
+                                chatId: data['id'],
+                                recipientId: data['userId'] ?? data['victimId'] ?? "",
+                                recipientName: data['name'] ?? "Victim",
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+      );
+
+    if (_isFullScreen) {
+      return mapWidget;
+    } else {
+      return SizedBox(
+        height: MediaQuery.of(context).size.height * 0.45,
+        width: double.infinity,
+        child: mapWidget,
+      );
+    }
+  }
+  Widget _buildBottomActions(BuildContext context, String alertId, Map<String, dynamic> data, User? user) {
     final String acceptedBy = data['acceptedBy'] ?? '';
     final String acceptedByName = data['acceptedByName'] ?? '';
 

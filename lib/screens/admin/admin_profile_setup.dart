@@ -16,6 +16,45 @@ class _AdminProfileSetupScreenState extends State<AdminProfileSetupScreen> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController adminCodeController = TextEditingController();
   bool isLoading = false;
+  List<String> _userRoles = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfileData();
+  }
+
+  Future<void> _loadProfileData() async {
+    setState(() => isLoading = true);
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      // Load roles
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+      if (userDoc.exists) {
+        final userData = userDoc.data() as Map<String, dynamic>;
+        setState(() {
+          _userRoles = List<String>.from(userData['roles'] ?? []);
+        });
+      }
+
+      // Load existing admin data
+      final adminDoc = await FirebaseFirestore.instance
+          .collection("admins")
+          .doc(user.uid)
+          .get();
+      if (adminDoc.exists) {
+        final data = adminDoc.data() as Map<String, dynamic>;
+        setState(() {
+          nameController.text = data['name'] ?? "";
+          adminCodeController.text = data['adminCode'] ?? "";
+        });
+      }
+    }
+    setState(() => isLoading = false);
+  }
 
   @override
   void dispose() {
@@ -143,7 +182,7 @@ class _AdminProfileSetupScreenState extends State<AdminProfileSetupScreen> {
                           ),
                         )
                       : const Text(
-                          "Initialize Console",
+                          "Save Profile",
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -151,6 +190,72 @@ class _AdminProfileSetupScreenState extends State<AdminProfileSetupScreen> {
                         ),
                 ),
               ),
+              const SizedBox(height: 32),
+
+              // Account Roles Section
+              if (_userRoles.length > 1)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Switch Identity",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    ..._userRoles.where((r) => r != 'admin').map((role) {
+                      IconData roleIcon = Icons.person_rounded;
+                      String roleName = role;
+                      if (role == 'tourist') {
+                        roleIcon = Icons.explore_rounded;
+                        roleName = "Tourist Explorer";
+                      } else if (role == 'police') {
+                        roleIcon = Icons.local_police_rounded;
+                        roleName = "Police Responder";
+                      } else if (role == 'hospital' || role == 'medical') {
+                        roleIcon = Icons.local_hospital_rounded;
+                        roleName = "Medical Staff";
+                      }
+
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: ListTile(
+                          leading: Icon(roleIcon, color: Colors.black),
+                          title: Text(
+                            "Switch to $roleName",
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                            ),
+                          ),
+                          trailing: const Icon(Icons.chevron_right_rounded),
+                          onTap: () async {
+                            final user = FirebaseAuth.instance.currentUser;
+                            if (user != null) {
+                              setState(() => isLoading = true);
+                              await UserService().switchRole(user.uid, role);
+                              if (mounted) {
+                                Navigator.pushNamedAndRemoveUntil(
+                                  context,
+                                  '/',
+                                  (route) => false,
+                                );
+                              }
+                            }
+                          },
+                        ),
+                      );
+                    }),
+                  ],
+                ),
             ],
           ),
         ),

@@ -45,7 +45,7 @@ class _TouristProfileSetupScreenState extends State<TouristProfileSetupScreen> {
     if (user == null) return;
 
     try {
-      // Check if user has a police profile to pre-fill name
+      // Check if user has a police profile - we offer it but don't force it
       final policeDoc = await FirebaseFirestore.instance
           .collection('police')
           .doc(user.uid)
@@ -56,7 +56,10 @@ class _TouristProfileSetupScreenState extends State<TouristProfileSetupScreen> {
         if (data != null && data['name'] != null) {
           setState(() {
             existingPoliceName = data['name'];
-            usernameController.text = data['name'];
+            // Pre-fill only if currently empty
+            if (usernameController.text.isEmpty) {
+              usernameController.text = data['name'];
+            }
           });
         }
       }

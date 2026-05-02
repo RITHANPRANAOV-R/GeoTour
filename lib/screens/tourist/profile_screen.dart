@@ -7,6 +7,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:http/http.dart' as http;
 import '../common/report_viewer_screen.dart';
 import '../../widgets/premium_toast.dart';
+import '../../services/user_service.dart';
 
 class TouristProfileScreen extends StatefulWidget {
   const TouristProfileScreen({super.key});
@@ -19,6 +20,7 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
   bool isLoading = false;
   bool isUploading = false;
   bool _isChanged = false;
+  List<String> _userRoles = [];
 
   // Cloudinary Configuration
   static const String _cloudName = "dwkswq6b6";
@@ -63,6 +65,18 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
     setState(() => isLoading = true);
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
+      // Load roles first to show switching options
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+      if (userDoc.exists) {
+        final userData = userDoc.data() as Map<String, dynamic>;
+        setState(() {
+          _userRoles = List<String>.from(userData['roles'] ?? []);
+        });
+      }
+
       final doc = await FirebaseFirestore.instance
           .collection('tourists')
           .doc(user.uid)
@@ -74,6 +88,7 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
         final e = data['emergencyContact'] as Map<String, dynamic>?;
 
         setState(() {
+          // Use 'username' specifically for tourists
           nameController.text = data['username'] ?? user.displayName ?? "";
           phoneController.text = data['phone'] ?? "";
           touristIdController.text = data['touristId'] ?? "";
@@ -361,6 +376,69 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
               Icons.file_present_outlined,
               [_buildNativeReportCard()],
             ),
+            const SizedBox(height: 20),
+
+            // Account Roles Section (Switch to other identities)
+            if (_userRoles.length > 1)
+              _buildNativeSection(
+                "Switch Identity",
+                Icons.switch_account_outlined,
+                [
+                  ..._userRoles.where((r) => r != 'tourist').map((role) {
+                    IconData roleIcon = Icons.person_rounded;
+                    String roleName = role;
+                    if (role == 'police') {
+                      roleIcon = Icons.local_police_rounded;
+                      roleName = "Police Responder";
+                    } else if (role == 'hospital' || role == 'medical') {
+                      roleIcon = Icons.local_hospital_rounded;
+                      roleName = "Medical Staff";
+                    } else if (role == 'admin') {
+                      roleIcon = Icons.admin_panel_settings_rounded;
+                      roleName = "Administrator";
+                    }
+
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(roleIcon, color: Colors.black, size: 20),
+                      ),
+                      title: Text(
+                        "Switch to $roleName",
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                        ),
+                      ),
+                      subtitle: const Text(
+                        "Load your specialized role data",
+                        style: TextStyle(fontSize: 11),
+                      ),
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: () async {
+                        final user = FirebaseAuth.instance.currentUser;
+                        if (user != null) {
+                          setState(() => isLoading = true);
+                          await UserService().switchRole(user.uid, role);
+                          if (mounted) {
+                            // Redirect to AuthWrapper to load correct role dashboard or setup
+                            Navigator.pushNamedAndRemoveUntil(
+                              context,
+                              '/',
+                              (route) => false,
+                            );
+                          }
+                        }
+                      },
+                    );
+                  }),
+                ],
+              ),
             const SizedBox(height: 32),
 
             // Bottom Save Button
