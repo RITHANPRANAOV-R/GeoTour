@@ -78,6 +78,19 @@ class HospitalService {
         'targetHospitalId': hospitalId,
       }
     );
+    
+    // 3. Update user's sub-collection for status tracking
+    final String? userId = alertData['userId'] ?? alertData['victimId'];
+    if (userId != null) {
+      batch.update(
+        _firestore.collection('users').doc(userId).collection('alerts').doc(alertId),
+        {
+          'status': 'ongoing',
+          'acceptedAt': FieldValue.serverTimestamp(),
+          'hospitalId': hospitalId,
+        }
+      );
+    }
 
     await batch.commit();
   }
@@ -106,6 +119,23 @@ class HospitalService {
         'caseDescription': description,
       }
     );
+
+    // 3. Update user's sub-collection for status tracking
+    final globalDoc = await _firestore.collection('hospital_alerts').doc(alertId).get();
+    if (globalDoc.exists) {
+      final alertData = globalDoc.data()!;
+      final userId = alertData['userId'] ?? alertData['victimId'];
+      if (userId != null) {
+        batch.update(
+          _firestore.collection('users').doc(userId).collection('alerts').doc(alertId),
+          {
+            'status': 'completed',
+            'completedAt': FieldValue.serverTimestamp(),
+            'caseDescription': description,
+          }
+        );
+      }
+    }
 
     await batch.commit();
   }

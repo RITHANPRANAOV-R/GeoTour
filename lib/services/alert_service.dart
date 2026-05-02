@@ -67,8 +67,8 @@ class AlertService extends ChangeNotifier {
       final data = doc.data() as Map<String, dynamic>;
       final alert = AlertModel(
         id: doc.id,
-        title: data['threat'] ?? data['victimName'] ?? "Alert",
-        description: data['medicalInfo'] ?? "Emergency SOS",
+        title: data['threat'] ?? data['title'] ?? data['victimName'] ?? data['name'] ?? "Alert",
+        description: data['medicalInfo'] ?? data['description'] ?? data['summary'] ?? "Emergency SOS",
         timeAgo: _formatTimestamp(data['timestamp']),
         severity: _parseSeverity(data['riskLevel']),
         lat: (data['location'] as GeoPoint?)?.latitude ?? 0.0,

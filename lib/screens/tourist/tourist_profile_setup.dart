@@ -32,6 +32,38 @@ class _TouristProfileSetupScreenState extends State<TouristProfileSetupScreen> {
   bool termsAccepted = false;
 
   bool isLoading = false;
+  String? existingPoliceName;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadExistingProfile();
+  }
+
+  Future<void> _loadExistingProfile() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      // Check if user has a police profile to pre-fill name
+      final policeDoc = await FirebaseFirestore.instance
+          .collection('police')
+          .doc(user.uid)
+          .get();
+
+      if (policeDoc.exists && mounted) {
+        final data = policeDoc.data();
+        if (data != null && data['name'] != null) {
+          setState(() {
+            existingPoliceName = data['name'];
+            usernameController.text = data['name'];
+          });
+        }
+      }
+    } catch (e) {
+      // Silent error
+    }
+  }
 
   @override
   void dispose() {

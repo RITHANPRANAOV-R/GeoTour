@@ -126,8 +126,8 @@ class PoliceService {
 
       transaction.update(alertRef, updateData);
 
-      // Update victim's sub-collection if userId exists
-      final String? victimId = alertData['userId'];
+      // Update victim's sub-collection if userId or victimId exists
+      final String? victimId = alertData['userId'] ?? alertData['victimId'];
       if (victimId != null) {
         DocumentReference userAlertRef = _firestore
             .collection('users')

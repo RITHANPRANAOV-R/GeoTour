@@ -424,16 +424,15 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
               ],
             ),
           ),
-          bottomNavigationBar: _buildBottomActions(data, user),
+          bottomNavigationBar: _buildBottomActions(snapshot.data!.id, data, user),
         );
       },
     );
   }
 
-  Widget _buildBottomActions(Map<String, dynamic> data, User? user) {
+  Widget _buildBottomActions(String alertId, Map<String, dynamic> data, User? user) {
     final String acceptedBy = data['acceptedBy'] ?? '';
     final String acceptedByName = data['acceptedByName'] ?? '';
-    final String alertId = data['id'] ?? '';
 
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 0, 24, 30),
@@ -521,8 +520,8 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
                                 MaterialPageRoute(
                                   builder: (context) => PoliceChatScreen(
                                     chatId: alertId,
-                                    recipientId: data['userId'] ?? "",
-                                    recipientName: data['name'] ?? "Victim",
+                                    recipientId: data['userId'] ?? data['victimId'] ?? data['touristId'] ?? "",
+                                    recipientName: data['name'] ?? data['victimName'] ?? data['username'] ?? "Victim",
                                   ),
                                 ),
                               );
@@ -966,13 +965,11 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
           );
         }
 
-        final touristData = snapshot.data?.data() as Map<String, dynamic>?;
-        if (touristData == null || touristData['medicalInfo'] == null) {
-          return const SizedBox.shrink();
-        }
+        final touristData = snapshot.data?.data() as Map<String, dynamic>? ?? {};
+        final medicalInfo = touristData['medicalInfo'] as Map<String, dynamic>?;
 
-        final medicalInfo = touristData['medicalInfo'] as Map<String, dynamic>;
-        final reportUrl = medicalInfo['healthReportFile'] ?? 'N/A';
+        // If medical info is null, we still show the section but with "N/A" values
+        final reportUrl = medicalInfo?['healthReportFile'] ?? 'N/A';
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1009,19 +1006,19 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
                     _buildInfoRow(
                       Icons.bloodtype_outlined,
                       "Blood Group",
-                      medicalInfo['bloodGroup'] ?? "N/A",
+                      medicalInfo?['bloodGroup'] ?? "N/A",
                     ),
                     const Divider(height: 32, thickness: 0.5),
                     _buildInfoRow(
                       Icons.medication_outlined,
                       "Medications",
-                      medicalInfo['medications'] ?? "N/A",
+                      medicalInfo?['medications'] ?? "N/A",
                     ),
                     const Divider(height: 32, thickness: 0.5),
                     _buildInfoRow(
                       Icons.healing_outlined,
                       "Allergies",
-                      medicalInfo['allergies'] ?? "N/A",
+                      medicalInfo?['allergies'] ?? "N/A",
                     ),
                     if (reportUrl != 'N/A') ...[
                       const Divider(height: 32, thickness: 0.5),

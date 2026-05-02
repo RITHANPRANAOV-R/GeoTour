@@ -523,10 +523,61 @@ class _EmergencyResponseScreenState extends State<EmergencyResponseScreen>
                       fontSize: 13,
                     ),
                     dividerColor: Colors.transparent,
-                    tabs: const [
-                      Tab(text: "Medical"),
-                      Tab(text: "Police"),
-                      Tab(text: "Others"),
+                    tabs: [
+                      const Tab(text: "Medical"),
+                      const Tab(text: "Police"),
+                      StreamBuilder<QuerySnapshot>(
+                        stream: ChatService().getConversationsStream(
+                          AuthService().currentUser?.uid ?? "",
+                        ),
+                        builder: (context, snapshot) {
+                          int unreadCount = 0;
+                          if (snapshot.hasData) {
+                            final uid = AuthService().currentUser?.uid;
+                            for (var doc in snapshot.data!.docs) {
+                              final data = doc.data() as Map<String, dynamic>;
+                              final counts = data['unreadCounts'] as Map<String, dynamic>?;
+                              if (uid != null && counts != null) {
+                                unreadCount += (counts[uid] ?? 0) as int;
+                              }
+                            }
+                          }
+
+                          return Tab(
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Text("Others"),
+                                if (unreadCount > 0) ...[
+                                  const SizedBox(width: 4),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    constraints: const BoxConstraints(
+                                      minWidth: 16,
+                                      minHeight: 16,
+                                    ),
+                                    child: Text(
+                                      unreadCount > 9 ? "9+" : "$unreadCount",
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          );
+                        },
+                      ),
                     ],
                   ),
                 ),
@@ -832,6 +883,8 @@ class _EmergencyResponseScreenState extends State<EmergencyResponseScreen>
                       .snapshots(),
                   builder: (context, offSnap) {
                     LatLng? responderPos;
+                    String? resolvedName = officerName;
+
                     if (offSnap.hasData && offSnap.data!.exists) {
                       final offData =
                           offSnap.data!.data() as Map<String, dynamic>;
@@ -839,7 +892,15 @@ class _EmergencyResponseScreenState extends State<EmergencyResponseScreen>
                       if (geo != null) {
                         responderPos = LatLng(geo.latitude, geo.longitude);
                       }
+                      // Use the real-time name from the profile if available
+                      resolvedName = offData['name'] ?? officerName;
                     }
+
+                    // Avoid "Officer Officer" or "Officer null"
+                    final displayName = resolvedName ?? "Officer";
+                    final displayLabel = displayName.toLowerCase().contains("officer") 
+                        ? displayName 
+                        : "Officer $displayName";
 
                     return Column(
                       children: [
@@ -866,12 +927,12 @@ class _EmergencyResponseScreenState extends State<EmergencyResponseScreen>
                           ],
                         ),
                         Text(
-                          "Officer $officerName is en-route tracking your live location",
+                          "$displayLabel is en-route tracking your live location",
                           style: const TextStyle(fontSize: 12),
                         ),
                         const SizedBox(height: 16),
                         _buildResponderCard(
-                          officerName ?? "Officer",
+                          displayName,
                           data['acceptedBy'] ?? "#0000",
                           chatId: activeAlertId!,
                           recipientId: data['acceptedBy'],
@@ -925,7 +986,18 @@ class _EmergencyResponseScreenState extends State<EmergencyResponseScreen>
           );
         }
 
-        final conversations = snapshot.data!.docs;
+        final conversations = snapshot.data!.docs.toList();
+        
+        // Manual sort by timestamp (newest first) to avoid index requirement
+        conversations.sort((a, b) {
+          final aData = a.data() as Map<String, dynamic>;
+          final bData = b.data() as Map<String, dynamic>;
+          final aTime = aData['lastTimestamp'] as Timestamp?;
+          final bTime = bData['lastTimestamp'] as Timestamp?;
+          if (aTime == null) return 1;
+          if (bTime == null) return -1;
+          return bTime.compareTo(aTime);
+        });
 
         return ListView.builder(
           padding: const EdgeInsets.all(16),
@@ -950,7 +1022,10 @@ class _EmergencyResponseScreenState extends State<EmergencyResponseScreen>
                 if (offSnap.hasData && offSnap.data!.exists) {
                   final offData = offSnap.data!.data() as Map<String, dynamic>;
                   name = offData['name'] ?? "Officer";
-                  image = offData['image'];
+                  image = offData['profileImage'];
+                } else {
+                  // Fallback: If not found in police collection, use the name from the alert document
+                  name = chat['acceptedByName'] ?? "Responder";
                 }
 
                 return Card(
@@ -974,7 +1049,34 @@ class _EmergencyResponseScreenState extends State<EmergencyResponseScreen>
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    trailing: const Icon(Icons.chevron_right),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (chat['unreadCounts'] != null &&
+                            chat['unreadCounts'][user.uid] != null &&
+                            chat['unreadCounts'][user.uid] > 0)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              "${chat['unreadCounts'][user.uid]}",
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        const SizedBox(width: 8),
+                        const Icon(Icons.chevron_right),
+                      ],
+                    ),
                     onTap: () {
                       Navigator.push(
                         context,
@@ -1279,7 +1381,7 @@ class _EmergencyResponseScreenState extends State<EmergencyResponseScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "Officer $name",
+                      name.toLowerCase().contains("officer") ? name : "Officer $name",
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
