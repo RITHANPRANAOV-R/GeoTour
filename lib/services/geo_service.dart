@@ -156,6 +156,16 @@ class GeoService extends ChangeNotifier {
           _currentPosition = position;
           notifyListeners();
 
+          // Sync location to users collection for admin monitoring
+          final user = FirebaseAuth.instance.currentUser;
+          if (user != null) {
+            FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+              'latitude': position.latitude,
+              'longitude': position.longitude,
+              'lastUpdated': FieldValue.serverTimestamp(),
+            }, SetOptions(merge: true)).catchError((_) {});
+          }
+
           // Live Track Victim: Update active alert location in Firestore
           final activeAlertId = AlertService().activeAlertId;
           if (activeAlertId != null) {

@@ -30,10 +30,11 @@ class AdminAPIService {
         final data = doc.data();
         return {
           'uid': doc.id,
-          'name': data['name'] ?? 'User',
+          'name': data['name'] ?? data['username'] ?? 'User',
           'latitude': data['latitude'] ?? 13.0827,
           'longitude': data['longitude'] ?? 80.2707,
           'status': data['status'] ?? 'Stable',
+          'activeRole': data['activeRole'] ?? 'tourist',
         };
       }).toList();
     } catch (e) {

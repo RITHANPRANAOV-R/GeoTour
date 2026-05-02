@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../../services/risk_zone_service.dart';
+import '../../services/location_service.dart';
 import '../../widgets/premium_toast.dart';
 
 class GeofenceManagementScreen extends StatefulWidget {
@@ -19,6 +20,12 @@ class _GeofenceManagementScreenState extends State<GeofenceManagementScreen> {
   final RiskZoneService _riskZoneService = RiskZoneService();
   late final Stream<List<Map<String, dynamic>>> _riskZonesStream;
 
+  // New state for Full Screen and Search
+  bool _isFullScreen = false;
+  final TextEditingController _searchController = TextEditingController();
+  List<LocationSuggestion> _suggestions = [];
+  bool _isSearching = false;
+
   @override
   void initState() {
     super.initState();
@@ -29,6 +36,31 @@ class _GeofenceManagementScreenState extends State<GeofenceManagementScreen> {
     setState(() {
       _pickedPoint = point;
     });
+  }
+
+  void _onSearchChanged(String query) async {
+    if (query.length < 3) {
+      setState(() => _suggestions = []);
+      return;
+    }
+
+    setState(() => _isSearching = true);
+    final results = await LocationService.searchLocations(query);
+    if (mounted) {
+      setState(() {
+        _suggestions = results;
+        _isSearching = false;
+      });
+    }
+  }
+
+  void _selectSuggestion(LocationSuggestion suggestion) {
+    setState(() {
+      _pickedPoint = suggestion.point;
+      _suggestions = [];
+      _searchController.clear();
+    });
+    _mapController.move(suggestion.point, 15.0);
   }
 
   Color _getSeverityColor(String severity) {
@@ -486,58 +518,166 @@ class _GeofenceManagementScreenState extends State<GeofenceManagementScreen> {
         children: [
           // Map Display
           Expanded(
-            flex: 4,
-            child: StreamBuilder<List<Map<String, dynamic>>>(
-              stream: _riskZonesStream,
-              builder: (context, snapshot) {
-                final zones = snapshot.data ?? [];
-                return FlutterMap(
-                  mapController: _mapController,
-                  options: MapOptions(
-                    initialCenter: const LatLng(13.0827, 80.2707),
-                    initialZoom: 13.0,
-                    onTap: _onMapTap,
-                  ),
-                  children: [
-                    TileLayer(
-                      urlTemplate:
-                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      userAgentPackageName: 'com.geotour.app',
-                    ),
-                    CircleLayer(
-                      circles: zones.map((z) => CircleMarker(
-                        point: LatLng(z['latitude'], z['longitude']),
-                        radius: (z['radius'] as num).toDouble(),
-                        useRadiusInMeter: true,
-                        color: _getSeverityColor(z['severity']).withValues(alpha: 0.3),
-                        borderColor: _getSeverityColor(z['severity']),
-                        borderStrokeWidth: 2,
-                      )).toList(),
-                    ),
-                    MarkerLayer(
-                      markers: [
-                        if (_pickedPoint != null)
-                          Marker(
-                            point: _pickedPoint!,
-                            width: 80,
-                            height: 80,
-                            child: const Icon(
-                              Icons.location_on,
-                              color: Colors.red,
-                              size: 45,
+            flex: _isFullScreen ? 10 : 4,
+            child: Stack(
+              children: [
+                StreamBuilder<List<Map<String, dynamic>>>(
+                  stream: _riskZonesStream,
+                  builder: (context, snapshot) {
+                    final zones = snapshot.data ?? [];
+                    return FlutterMap(
+                      mapController: _mapController,
+                      options: MapOptions(
+                        initialCenter: const LatLng(13.0827, 80.2707),
+                        initialZoom: 13.0,
+                        onTap: _onMapTap,
+                      ),
+                      children: [
+                        TileLayer(
+                          urlTemplate:
+                              'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                          userAgentPackageName: 'com.geotour.app',
+                        ),
+                        CircleLayer(
+                          circles: zones
+                              .map((z) => CircleMarker(
+                                    point: LatLng(z['latitude'], z['longitude']),
+                                    radius: (z['radius'] as num).toDouble(),
+                                    useRadiusInMeter: true,
+                                    color: _getSeverityColor(z['severity'])
+                                        .withValues(alpha: 0.3),
+                                    borderColor: _getSeverityColor(z['severity']),
+                                    borderStrokeWidth: 2,
+                                  ))
+                              .toList(),
+                        ),
+                        MarkerLayer(
+                          markers: [
+                            if (_pickedPoint != null)
+                              Marker(
+                                point: _pickedPoint!,
+                                width: 80,
+                                height: 80,
+                                child: const Icon(
+                                  Icons.location_on,
+                                  color: Colors.red,
+                                  size: 45,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
+                    );
+                  },
+                ),
+
+                // Search Bar (Only in Full Screen)
+                if (_isFullScreen)
+                  Positioned(
+                    top: 16,
+                    left: 16,
+                    right: 16,
+                    child: Column(
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.1),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: TextField(
+                            controller: _searchController,
+                            decoration: InputDecoration(
+                              hintText: "Search location to plot...",
+                              prefixIcon: const Icon(Icons.search),
+                              suffixIcon: _isSearching
+                                  ? const Padding(
+                                      padding: EdgeInsets.all(12),
+                                      child: CircularProgressIndicator(
+                                          strokeWidth: 2),
+                                    )
+                                  : (_searchController.text.isNotEmpty
+                                      ? IconButton(
+                                          icon: const Icon(Icons.clear),
+                                          onPressed: () {
+                                            _searchController.clear();
+                                            setState(() => _suggestions = []);
+                                          },
+                                        )
+                                      : null),
+                              border: InputBorder.none,
+                              contentPadding:
+                                  const EdgeInsets.symmetric(vertical: 14),
+                            ),
+                            onChanged: _onSearchChanged,
+                          ),
+                        ),
+                        if (_suggestions.isNotEmpty)
+                          Container(
+                            margin: const EdgeInsets.only(top: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.1),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            constraints: const BoxConstraints(maxHeight: 250),
+                            child: ListView.separated(
+                              shrinkWrap: true,
+                              padding: EdgeInsets.zero,
+                              itemCount: _suggestions.length,
+                              separatorBuilder: (_, __) => const Divider(height: 1),
+                              itemBuilder: (context, index) {
+                                final s = _suggestions[index];
+                                return ListTile(
+                                  title: Text(s.displayName,
+                                      style: const TextStyle(fontSize: 14)),
+                                  onTap: () => _selectSuggestion(s),
+                                );
+                              },
                             ),
                           ),
                       ],
                     ),
-                  ],
-                );
-              },
+                  ),
+
+                // Full Screen Toggle
+                Positioned(
+                  top: _isFullScreen ? 16 : 16,
+                  right: _isFullScreen ? 16 : 16,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    margin: _isFullScreen ? const EdgeInsets.only(top: 60) : EdgeInsets.zero,
+                    child: FloatingActionButton.small(
+                      heroTag: "fs_toggle",
+                      backgroundColor: Colors.white,
+                      onPressed: () => setState(() => _isFullScreen = !_isFullScreen),
+                      child: Icon(
+                        _isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
 
-          // List Display
-          Expanded(
-            flex: 3,
+          // List Display (Hidden in Full Screen)
+          if (!_isFullScreen)
+            Expanded(
+              flex: 3,
             child: Container(
               decoration: const BoxDecoration(
                 color: Colors.white,
