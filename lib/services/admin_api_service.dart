@@ -279,36 +279,127 @@ class AdminAPIService {
           .get(Uri.parse("$baseUrl/incidents"))
           .timeout(const Duration(seconds: 1));
       if (response.statusCode == 200) {
-        allIncidents.addAll(json.decode(response.body));
+        final List<dynamic> restData = json.decode(response.body);
+        for (var item in restData) {
+          final String summary = (item['details'] ?? item['summary'] ?? '').toString().toLowerCase();
+          final String type = (item['type'] ?? '').toString().toLowerCase();
+          
+          String inferredRole = 'police';
+          if (summary.contains('medical') || summary.contains('hospital') || type.contains('medical')) {
+            inferredRole = 'medical';
+          }
+          
+          item['responderRole'] = inferredRole;
+          allIncidents.add(item);
+        }
       }
     } catch (e) {
       debugPrint("REST Backend unreachable: $e");
     }
 
+    // 2. Fetch from Firebase Firestore (Main App Database - Police Incidents)
     // 2. Fetch from Firebase Firestore (Main App Database)
     try {
-      final snapshot = await _firestore
-          .collection('incidents')
-          .orderBy('timestamp', descending: true)
-          .get();
+      // 1. Fetch responder reference data for ID matching
+      final policeSnapshot = await _firestore.collection('police').get();
+      final hospitalSnapshot = await _firestore.collection('hospitals').get();
+      
+      final Set<String> policeIds = policeSnapshot.docs.map((doc) => doc.id).toSet();
+      final Set<String> hospitalIds = hospitalSnapshot.docs.map((doc) => doc.id).toSet();
 
-      for (var doc in snapshot.docs) {
+      // 2. Parallel fetch of all potential incident sources
+      final results = await Future.wait([
+        _firestore.collection('incidents').get(),
+        _firestore.collection('hospital_alerts').get(), // Fetch all to avoid missing non-standard completed status
+      ]);
+
+      final policeIncidentsSnapshot = results[0];
+      final medicalAlertsSnapshot = results[1];
+
+      // 3. Process incidents from the 'incidents' collection (Primary source for Police/Geo)
+      for (var doc in policeIncidentsSnapshot.docs) {
         final data = doc.data();
+        final String? responderId = data['officerId'] ?? 
+                                    data['hospitalId'] ?? 
+                                    data['targetHospitalId'] ?? 
+                                    data['acceptedBy'];
+        final String summary = (data['summary'] ?? '').toString().toLowerCase();
+        final String type = (data['type'] ?? data['riskLevel'] ?? '').toString().toLowerCase();
+        final String details = (data['details'] ?? '').toString().toLowerCase();
+        
+        // Priority 1: Direct role field
+        String role = (data['responderRole'] ?? '').toString().toLowerCase();
+        
+        // Priority 2: ID Matching
+        if (role != 'police' && role != 'medical') {
+          if (responderId != null) {
+            if (hospitalIds.contains(responderId)) role = 'medical';
+            else if (policeIds.contains(responderId)) role = 'police';
+          }
+        }
+        
+        // Priority 3: Content-based inference
+        if (role != 'police' && role != 'medical') {
+          if (summary.contains('medical') || summary.contains('hospital') || 
+              summary.contains('ambulance') || summary.contains('patient') ||
+              type.contains('medical') || details.contains('medical')) {
+            role = 'medical';
+          } else if (type.contains('geo-fence') || type.contains('violation')) {
+            role = 'geofence';
+          } else {
+            role = 'police'; // Default fallback
+          }
+        }
+
         allIncidents.add({
           'id': doc.id,
-          'type': data['riskLevel'] ?? 'Notification',
+          'type': data['type'] ?? data['riskLevel'] ?? 'Notification',
           'user': data['victimName'] ?? 'Unknown User',
           'details': data['summary'] ?? 'N/A',
           'timestamp':
               data['timestamp'] is Timestamp
                   ? (data['timestamp'] as Timestamp).toDate().toIso8601String()
                   : DateTime.now().toIso8601String(),
-          'officer': data['officerName'] ?? 'System',
+          'officer': data['officerName'] ?? data['acceptedByName'] ?? 'System',
+          'responderRole': role,
         });
       }
+
+      // 4. Process incidents from 'hospital_alerts' collection (Source for Medical cases)
+      for (var doc in medicalAlertsSnapshot.docs) {
+        final data = doc.data();
+        // Only include completed or ongoing medical cases in the logs
+        final String status = (data['status'] ?? '').toString().toLowerCase();
+        if (status == 'completed' || status == 'ongoing' || status == 'resolved') {
+          allIncidents.add({
+            'id': doc.id,
+            'type': 'Medical Alert',
+            'user': data['name'] ?? data['victimName'] ?? 'Unknown User',
+            'details': data['caseDescription'] ?? data['details'] ?? data['summary'] ?? 'Medical case handled',
+            'timestamp':
+                data['completedAt'] is Timestamp
+                    ? (data['completedAt'] as Timestamp).toDate().toIso8601String()
+                    : (data['timestamp'] is Timestamp 
+                        ? (data['timestamp'] as Timestamp).toDate().toIso8601String()
+                        : DateTime.now().toIso8601String()),
+            'officer': data['acceptedByName'] ?? 'Medical Team',
+            'responderRole': 'medical',
+          });
+        }
+      }
+
     } catch (e) {
       debugPrint("Error fetching Firestore incidents: $e");
     }
+
+    // Sort combined timeline by timestamp (newest first)
+    allIncidents.sort((a, b) {
+      try {
+        return DateTime.parse(b['timestamp']).compareTo(DateTime.parse(a['timestamp']));
+      } catch (e) {
+        return 0;
+      }
+    });
 
     return allIncidents;
   }

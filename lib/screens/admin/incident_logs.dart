@@ -29,14 +29,37 @@ class _IncidentLogsScreenState extends State<IncidentLogsScreen> {
       _isLoading = false;
     });
   }
+
   @override
   Widget build(BuildContext context) {
     final filteredIncidents = _incidents.where((log) {
-      if (_selectedFilter == 'all') return true;
-      final type = (log['type'] ?? 'notification').toString().toLowerCase();
-      if (_selectedFilter == 'medical') return type.contains('medical');
-      if (_selectedFilter == 'police') return type == 'threat' || type == 'accident';
-      return type == _selectedFilter;
+      final filter = _selectedFilter.toLowerCase();
+      if (filter == 'all') return true;
+
+      final role = (log['responderRole'] ?? '').toString().toLowerCase();
+      final type = (log['type'] ?? '').toString().toLowerCase();
+      final details = (log['details'] ?? log['summary'] ?? '').toString().toLowerCase();
+
+      // Final classification helper
+      bool isMedical = role == 'medical' || 
+                        type.contains('medical') || 
+                        type.contains('hospital') ||
+                        details.contains('medical') || 
+                        details.contains('hospital') ||
+                        details.contains('ambulance');
+      
+      bool isGeoFence = type.contains('geo-fence') || 
+                         type.contains('violation') || 
+                         details.contains('geo-fence');
+
+      if (filter == 'medical') return isMedical;
+      if (filter == 'geo-fence violation') return isGeoFence;
+      if (filter == 'police') {
+        // Police is anything NOT medical and NOT geofence
+        return !isMedical && !isGeoFence;
+      }
+
+      return true;
     }).toList();
 
     return Scaffold(
@@ -79,46 +102,53 @@ class _IncidentLogsScreenState extends State<IncidentLogsScreen> {
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
-              children: [
-                {'key': 'all', 'label': 'All'},
-                {'key': 'police', 'label': 'Police (Threats/Accidents)'},
-                {'key': 'medical', 'label': 'Medical'},
-                {'key': 'geo-fence violation', 'label': 'Geo-Fence'},
-              ].map((filter) {
-                final isSelected = _selectedFilter == filter['key'];
-                Color filterColor = Colors.black;
-                if (filter['key'] == 'police') filterColor = Colors.red;
-                if (filter['key'] == 'medical') filterColor = Colors.blue;
-                if (filter['key'] == 'geo-fence violation') filterColor = Colors.purple;
-                
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: FilterChip(
-                    label: Text(
-                      filter['label']!,
-                      style: TextStyle(
-                        color: isSelected ? Colors.white : filterColor,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 12,
+              children:
+                  [
+                    {'key': 'all', 'label': 'All'},
+                    {'key': 'police', 'label': 'Police (Threats/Accidents)'},
+                    {'key': 'medical', 'label': 'Medical'},
+                    {'key': 'geo-fence violation', 'label': 'Geo-Fence'},
+                  ].map((filter) {
+                    final isSelected = _selectedFilter == filter['key'];
+                    Color filterColor = Colors.black;
+                    if (filter['key'] == 'police') filterColor = Colors.red;
+                    if (filter['key'] == 'medical') filterColor = Colors.blue;
+                    if (filter['key'] == 'geo-fence violation')
+                      filterColor = Colors.purple;
+
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: FilterChip(
+                        label: Text(
+                          filter['label']!,
+                          style: TextStyle(
+                            color: isSelected ? Colors.white : filterColor,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 12,
+                          ),
+                        ),
+                        selected: isSelected,
+                        onSelected: (selected) {
+                          setState(() => _selectedFilter = filter['key']!);
+                        },
+                        backgroundColor: filterColor.withValues(alpha: 0.05),
+                        selectedColor: filterColor,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: BorderSide(
+                            color: isSelected
+                                ? filterColor
+                                : filterColor.withValues(alpha: 0.2),
+                          ),
+                        ),
+                        showCheckmark: false,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                       ),
-                    ),
-                    selected: isSelected,
-                    onSelected: (selected) {
-                      setState(() => _selectedFilter = filter['key']!);
-                    },
-                    backgroundColor: filterColor.withValues(alpha: 0.05),
-                    selectedColor: filterColor,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: BorderSide(
-                        color: isSelected ? filterColor : filterColor.withValues(alpha: 0.2),
-                      ),
-                    ),
-                    showCheckmark: false,
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  ),
-                );
-              }).toList(),
+                    );
+                  }).toList(),
             ),
           ),
           Expanded(
@@ -159,9 +189,8 @@ class _IncidentLogsScreenState extends State<IncidentLogsScreen> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => IncidentDetailsScreen(
-                                  incident: log,
-                                ),
+                                builder: (context) =>
+                                    IncidentDetailsScreen(incident: log),
                               ),
                             );
                           },

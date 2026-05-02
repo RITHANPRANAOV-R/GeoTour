@@ -178,9 +178,12 @@ class PoliceService {
       'riskLevel': alertData['riskLevel'] ?? 'High',
       'officerId': officerId,
       'officerName': alertData['acceptedByName'] ?? 'Officer',
+      'acceptedByName': alertData['acceptedByName'] ?? 'Officer',
+      'responderRole': 'police',
       'alertId': alertId,
       'timestamp': FieldValue.serverTimestamp(),
       'alertDetails': alertData,
+      'type': alertData['threat'] != null ? 'threat' : 'emergency',
     });
 
     // Mark Alert as completed

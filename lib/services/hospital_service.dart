@@ -135,6 +135,21 @@ class HospitalService {
           }
         );
       }
+
+      // 4. Log to Incidents collection for Admin
+      DocumentReference incidentRef = _firestore.collection('incidents').doc();
+      batch.set(incidentRef, {
+        'victimName': alertData['name'] ?? 'Unknown',
+        'summary': "Medical response completed: $description",
+        'riskLevel': alertData['riskLevel'] ?? 'Medium',
+        'hospitalId': hospitalId,
+        'officerName': "Medical Team", // Fallback name
+        'acceptedByName': "Medical Team",
+        'responderRole': 'medical',
+        'alertId': alertId,
+        'timestamp': FieldValue.serverTimestamp(),
+        'type': 'medical alert',
+      });
     }
 
     await batch.commit();
