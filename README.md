@@ -37,6 +37,7 @@ GeoTour features a **Premium Glassmorphic Interface** that blends aesthetics wit
 
 ### Structure
 
+```text
 GeoTour/
 ├── lib/
 │   ├── models/            # Data models (Alert, Hospital, Officer, Trip)
