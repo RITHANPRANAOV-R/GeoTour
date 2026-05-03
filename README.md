@@ -26,13 +26,58 @@ GeoTour brings a highly optimized user experience:
 - **Fluid Animations:** Refined transitions (like beautiful FadeTransitions) and micro-animations that make the app feel alive.
 - **Highly Optimized:** Engineered with global optimizations to minimize jank and deliver an uncompromising 60fps/120fps experience.
 
+### Structure
+
+GeoTour/
+├── lib/
+│   ├── models/            # Data models (Alert, Hospital, Officer, Trip)
+│   ├── screens/           # UI Screens grouped by user role
+│   │   ├── admin/         # Admin dashboard and controls
+│   │   ├── auth/          # Login and registration screens
+│   │   ├── common/        # Shared screens and utilities
+│   │   ├── hospital/      # Hospital case management and dashboard
+│   │   ├── police/        # Police incident management screens
+│   │   └── tourist/       # Tourist dashboard, SOS, and maps
+│   ├── services/          # Core business logic and Firebase API calls
+│   ├── widgets/           # Reusable custom UI components
+│   ├── firebase_options.dart # Generated Firebase configuration
+│   └── main.dart          # Application entry point
+├── pubspec.yaml           # Flutter dependencies and assets configuration
+└── README.md              # Project documentation
+```
+
 ## 🚀 Getting Started
 
-### Prerequisites
-- Flutter SDK (Ensure compatibility with `^3.11.0`)
-- Dart SDK
+### 💻 Hardware and Software Requirements
 
-### Installation
+**Software Requirements**
+- **Operating System:** Cross-Platform (Windows, MacOS, Linux for Development; Android, iOS for Mobile App)
+- **Runtime & SDKs:** Flutter SDK (Version `3.10.x` or higher), Dart SDK (comes with Flutter)
+- **Database:** Firebase Cloud Firestore (NoSQL Cloud Database)
+
+**Development Tools**
+- **Dart:** For object-oriented application development
+- **Flutter:** UI toolkit for building natively compiled cross-platform applications
+- **Firebase Services:** Authentication, Core integration, and Database
+- **Flutter Map:** Interactive maps and routing implementation
+- **Geolocator:** Location services and GPS integration
+- **Cloudinary:** Cloud-based media management and image hosting
+
+**Hardware Requirements (Development Machine)**
+- **Processor:** Quad-core CPU
+- **Memory:** 8 GB RAM or more (16 GB recommended for emulators)
+- **Storage:** At least 10 GB of available disk space
+- **Network:** Stable internet connection with adequate bandwidth
+
+**Software Tools to Build and Run the Project**
+- **Code Editor:** Visual Studio Code / Android Studio
+- **Version Control:** Git
+- **Package Management:** Flutter Pub (pub tool)
+- **Database Management:** Firebase Console
+- **API Testing:** Postman
+- **Deployment Platforms:** Google Play Store, Apple App Store, Firebase App Distribution
+
+### 📥 Installation
 
 1. Clone the repository:
    ```bash
@@ -50,10 +95,6 @@ GeoTour brings a highly optimized user experience:
    ```bash
    flutter run
    ```
-
-## 🛠 Technologies Used
-- **Flutter & Dart** - Core framework and language.
-- (Additional libraries as per project setup, such as routing and state management packages)
 
 ## 🤝 Contributing
 Contributions, issues, and feature requests are always welcome! Feel free to check the issues page.
