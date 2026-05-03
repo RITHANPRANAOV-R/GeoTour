@@ -32,11 +32,21 @@ class ChatService {
 
     final batch = _firestore.batch();
 
-    // Update or create chat header
+    // Update or create chat header with arrayUnion to prevent removing existing participants
     batch.set(
       _firestore.collection('chats').doc(chatId),
-      chatData,
+      {
+        'lastMessage': text,
+        'lastTimestamp': FieldValue.serverTimestamp(),
+      },
       SetOptions(merge: true),
+    );
+    
+    batch.update(
+      _firestore.collection('chats').doc(chatId),
+      {
+        'participants': FieldValue.arrayUnion(participants),
+      }
     );
 
     // Add message
@@ -45,12 +55,30 @@ class ChatService {
       messageData,
     );
 
+    // Update unread counts for other participants
+    final Map<String, dynamic> unreadUpdates = {};
+    for (String id in participants) {
+      if (id != senderId) {
+        unreadUpdates['unreadCounts.$id'] = FieldValue.increment(1);
+      }
+    }
+
+    batch.set(
+      _firestore.collection('chats').doc(chatId),
+      unreadUpdates,
+      SetOptions(merge: true),
+    );
+
     await batch.commit();
   }
 
+  Future<void> markAsRead(String chatId, String userId) async {
+    await _firestore.collection('chats').doc(chatId).update({
+      'unreadCounts.$userId': 0,
+    });
+  }
+
   Stream<QuerySnapshot> getConversationsStream(String userId) {
-    // Note: orderBy requires a composite index with array-contains.
-    // We'll use a simpler query if the index isn't ready.
     return _firestore
         .collection('chats')
         .where('participants', arrayContains: userId)

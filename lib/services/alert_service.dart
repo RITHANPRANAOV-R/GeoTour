@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/alert_model.dart';
 import 'police_service.dart';
 import 'auth_service.dart';
+import 'notification_service.dart';
 
 class AlertService extends ChangeNotifier {
   static final AlertService _instance = AlertService._internal();
@@ -37,34 +38,57 @@ class AlertService extends ChangeNotifier {
     }
   }
 
+  StreamSubscription? _hospitalAlertsSub;
+
   void _startSync(String uid) {
     _userAlertsSub?.cancel();
-    _userAlertsSub = PoliceService().getUserAlertsStream(uid).listen((
-      snapshot,
-    ) {
-      _alerts.clear();
-      for (var doc in snapshot.docs) {
-        final data = doc.data() as Map<String, dynamic>;
-        _alerts.add(
-          AlertModel(
-            id: doc.id,
-            title: data['threat'] ?? "Alert",
-            description:
-                "Alert triggered at ${data['location']?.latitude}, ${data['location']?.longitude}",
-            timeAgo: _formatTimestamp(data['timestamp']),
-            severity: _parseSeverity(data['riskLevel']),
-            lat: (data['location'] as GeoPoint?)?.latitude ?? 0.0,
-            lng: (data['location'] as GeoPoint?)?.longitude ?? 0.0,
-            status: data['status'] ?? 'pending',
-          ),
-        );
-      }
-      notifyListeners();
+    _userAlertsSub = PoliceService().getUserAlertsStream(uid).listen((snapshot) {
+      _processAlerts(snapshot, 'police');
     });
+
+    _hospitalAlertsSub?.cancel();
+    _hospitalAlertsSub = FirebaseFirestore.instance
+        .collection('hospital_alerts')
+        .where('userId', isEqualTo: uid)
+        .snapshots()
+        .listen((snapshot) {
+      _processAlerts(snapshot, 'medical');
+    });
+  }
+
+  void _processAlerts(QuerySnapshot snapshot, String type) {
+    // Merge or handle alerts
+    // For simplicity, we'll maintain a list that distinguishes by type if needed
+    // But for the listener to work, we need to clear and rebuild carefully
+    // Actually, let's keep them in the same _alerts list but with metadata
+    
+    // Instead of clear(), we find/update/add
+    for (var doc in snapshot.docs) {
+      final data = doc.data() as Map<String, dynamic>;
+      final alert = AlertModel(
+        id: doc.id,
+        title: data['threat'] ?? data['title'] ?? data['victimName'] ?? data['name'] ?? "Alert",
+        description: data['medicalInfo'] ?? data['description'] ?? data['summary'] ?? "Emergency SOS",
+        timeAgo: _formatTimestamp(data['timestamp']),
+        severity: _parseSeverity(data['riskLevel']),
+        lat: (data['location'] as GeoPoint?)?.latitude ?? 0.0,
+        lng: (data['location'] as GeoPoint?)?.longitude ?? 0.0,
+        status: data['status'] ?? 'pending',
+      );
+      
+      final index = _alerts.indexWhere((a) => a.id == doc.id);
+      if (index >= 0) {
+        _alerts[index] = alert;
+      } else {
+        _alerts.add(alert);
+      }
+    }
+    notifyListeners();
   }
 
   void _stopSync() {
     _userAlertsSub?.cancel();
+    _hospitalAlertsSub?.cancel();
     _alerts.clear();
     notifyListeners();
   }
@@ -104,6 +128,7 @@ class AlertService extends ChangeNotifier {
     String userName = user?.displayName ?? "Tourist";
     String? phone;
     String? contacts;
+    String? touristId;
 
     if (userId != null) {
       final profileDoc = await FirebaseFirestore.instance
@@ -114,6 +139,7 @@ class AlertService extends ChangeNotifier {
         final data = profileDoc.data() as Map<String, dynamic>;
         userName = data['name'] ?? userName;
         phone = data['phone'];
+        touristId = data['touristId'];
         if (data.containsKey('emergencyContacts')) {
           final ec = data['emergencyContacts'] as List<dynamic>;
           contacts = ec
@@ -132,11 +158,20 @@ class AlertService extends ChangeNotifier {
       userId: userId,
       phone: phone,
       contacts: contacts,
+      touristId: touristId,
     );
 
     // Note: No need to manually insert to _alerts here because
     // the Firestore listener in initialize() will pick it up automatically.
     _activeAlertId = alertId;
+
+    if (alertId != null) {
+      NotificationService().showNotification(
+        id: alertId.hashCode,
+        title: "🚨 Alert Triggered: $title",
+        body: description,
+      );
+    }
     return alertId;
   }
 
@@ -151,6 +186,7 @@ class AlertService extends ChangeNotifier {
 
   void clearAlerts() {
     _alerts.clear();
+    NotificationService().clearBadge();
     notifyListeners();
   }
 }

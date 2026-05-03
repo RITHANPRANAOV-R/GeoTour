@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../widgets/premium_toast.dart';
+import '../../services/user_service.dart';
 
 class PoliceProfileScreen extends StatefulWidget {
   const PoliceProfileScreen({super.key});
@@ -13,6 +14,7 @@ class PoliceProfileScreen extends StatefulWidget {
 class _PoliceProfileScreenState extends State<PoliceProfileScreen> {
   bool isLoading = false;
   bool _isChanged = false;
+  List<String> _userRoles = [];
 
   // Controllers
   final TextEditingController nameController = TextEditingController();
@@ -35,6 +37,18 @@ class _PoliceProfileScreenState extends State<PoliceProfileScreen> {
     setState(() => isLoading = true);
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
+      // Load roles first
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+      if (userDoc.exists) {
+        final userData = userDoc.data() as Map<String, dynamic>;
+        setState(() {
+          _userRoles = List<String>.from(userData['roles'] ?? []);
+        });
+      }
+
       final doc = await FirebaseFirestore.instance
           .collection('police')
           .doc(user.uid)
@@ -43,6 +57,7 @@ class _PoliceProfileScreenState extends State<PoliceProfileScreen> {
       if (doc.exists) {
         final data = doc.data() as Map<String, dynamic>;
         setState(() {
+          // Specifically load police 'name'
           nameController.text = data['name'] ?? user.displayName ?? "";
           badgeController.text = data['badgeNumber'] ?? "";
           rankController.text = data['rank'] ?? "";
@@ -212,6 +227,68 @@ class _PoliceProfileScreenState extends State<PoliceProfileScreen> {
                 ),
               ],
             ),
+            const SizedBox(height: 20),
+
+            // Switch Identity Section
+            if (_userRoles.length > 1)
+              _buildNativeSection(
+                "Switch Identity",
+                Icons.switch_account_outlined,
+                [
+                  ..._userRoles.where((r) => r != 'police').map((role) {
+                    IconData roleIcon = Icons.person_rounded;
+                    String roleName = role;
+                    if (role == 'tourist') {
+                      roleIcon = Icons.explore_rounded;
+                      roleName = "Tourist Explorer";
+                    } else if (role == 'hospital' || role == 'medical') {
+                      roleIcon = Icons.local_hospital_rounded;
+                      roleName = "Medical Staff";
+                    } else if (role == 'admin') {
+                      roleIcon = Icons.admin_panel_settings_rounded;
+                      roleName = "Administrator";
+                    }
+
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(roleIcon, color: Colors.black, size: 20),
+                      ),
+                      title: Text(
+                        "Switch to $roleName",
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                        ),
+                      ),
+                      subtitle: const Text(
+                        "Load your personal profile details",
+                        style: TextStyle(fontSize: 11),
+                      ),
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: () async {
+                        final user = FirebaseAuth.instance.currentUser;
+                        if (user != null) {
+                          setState(() => isLoading = true);
+                          await UserService().switchRole(user.uid, role);
+                          if (mounted) {
+                            Navigator.pushNamedAndRemoveUntil(
+                              context,
+                              '/',
+                              (route) => false,
+                            );
+                          }
+                        }
+                      },
+                    );
+                  }),
+                ],
+              ),
             const SizedBox(height: 32),
 
             // Bottom Save Button
@@ -261,7 +338,7 @@ class _PoliceProfileScreenState extends State<PoliceProfileScreen> {
         border: Border.all(color: const Color(0xFFF1F1F1), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.015),
+            color: Colors.black.withValues(alpha: 0.015),
             blurRadius: 24,
             offset: const Offset(0, 10),
           ),
@@ -275,7 +352,7 @@ class _PoliceProfileScreenState extends State<PoliceProfileScreen> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.indigo.withOpacity(0.1),
+                  color: Colors.indigo.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(icon, color: Colors.indigo, size: 20),

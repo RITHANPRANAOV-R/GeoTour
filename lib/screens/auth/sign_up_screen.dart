@@ -62,44 +62,53 @@ class _SignUpScreenState extends State<SignUpScreen> {
       }
     } on FirebaseAuthException catch (e) {
       if (e.code == 'email-already-in-use') {
-        // Attempt to sign in and check role compatibility
-        User? user = await AuthService().signInWithEmailPassword(
-          email,
-          password,
-        );
-        if (user != null) {
-          final userData = await UserService().getUserMainDoc(user.uid);
-          final existingRoles = userData?["roles"] as List<dynamic>? ?? [];
+        try {
+          // Attempt to sign in and check role compatibility
+          User? user = await AuthService().signInWithEmailPassword(
+            email,
+            password,
+          );
+          if (user != null) {
+            final userData = await UserService().getUserMainDoc(user.uid);
+            final existingRoles = userData?["roles"] as List<dynamic>? ?? [];
 
-          if (existingRoles.contains("police") && selectedRole == "tourist") {
-            await UserService().createUserMainDoc(
-              uid: user.uid,
-              email: email,
-              role: selectedRole,
-            );
-            if (mounted) {
-              _navigateToProfileSetup(selectedRole);
-            }
-          } else {
-            setState(() => isLoading = false);
-            if (mounted) {
-              PremiumToast.show(
-                context,
-                title: "Account Conflict",
-                message:
-                    "This account already exists and doesn't support the selected role.",
-                type: ToastType.warning,
+            if (existingRoles.contains("police") && selectedRole == "tourist") {
+              await UserService().createUserMainDoc(
+                uid: user.uid,
+                email: email,
+                role: selectedRole,
               );
+              if (mounted) {
+                _navigateToProfileSetup(selectedRole);
+              }
+            } else {
+              setState(() => isLoading = false);
+              if (mounted) {
+                PremiumToast.show(
+                  context,
+                  title: "Account Conflict",
+                  message:
+                      "This account already exists and doesn't support the selected role.",
+                  type: ToastType.warning,
+                );
+              }
             }
           }
-        } else {
+        } on FirebaseAuthException catch (authError) {
           setState(() => isLoading = false);
           if (mounted) {
+            String message = "Authentication failed.";
+            if (authError.code == 'invalid-credential' ||
+                authError.code == 'wrong-password') {
+              message = "Incorrect password for this account.";
+            } else {
+              message = authError.message ?? message;
+            }
             PremiumToast.show(
               context,
-              title: "Email Taken",
-              message: "This email is already in use. Please sign in instead.",
-              type: ToastType.warning,
+              title: "Login Failed",
+              message: message,
+              type: ToastType.error,
             );
           }
         }

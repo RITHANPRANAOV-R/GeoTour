@@ -135,6 +135,16 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                 urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                 userAgentPackageName: 'com.example.geotour',
               ),
+              CircleLayer(
+                circles: GeoService().riskZones.map((z) => CircleMarker(
+                  point: z["center"] as LatLng,
+                  radius: (z["radius"] as num).toDouble(),
+                  useRadiusInMeter: true,
+                  color: Colors.red.withValues(alpha: 0.3),
+                  borderColor: Colors.red,
+                  borderStrokeWidth: 2,
+                )).toList(),
+              ),
               if (_selectedPoint != null)
                 MarkerLayer(
                   markers: [
@@ -268,6 +278,11 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                     _selectedPoint = point;
                     _selectedName = "Current Location";
                     _searchController.text = _selectedName;
+                  });
+                  // Auto-submit and return the selected current location
+                  Navigator.pop(context, {
+                    'name': _selectedName,
+                    'point': _selectedPoint,
                   });
                 }
               },

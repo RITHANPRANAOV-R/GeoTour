@@ -59,7 +59,7 @@ class _MedicalInfoSetupScreenState extends State<MedicalInfoSetupScreen> {
       return;
     }
 
-    String? healthReportUrl = selectedFileName;
+    String? healthReportUrl;
 
     try {
       // 1. Upload file if selected

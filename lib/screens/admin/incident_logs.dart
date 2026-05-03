@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/admin_api_service.dart';
+import 'incident_details.dart';
 
 class IncidentLogsScreen extends StatefulWidget {
   const IncidentLogsScreen({super.key});
@@ -11,17 +12,8 @@ class IncidentLogsScreen extends StatefulWidget {
 class _IncidentLogsScreenState extends State<IncidentLogsScreen> {
   final AdminAPIService _apiService = AdminAPIService();
   List<dynamic> _incidents = [];
-  List<dynamic> _filteredIncidents = [];
   bool _isLoading = true;
-  String _filter = "All";
-
-  final List<String> _filterOptions = [
-    "All",
-    "Accident",
-    "Threat",
-    "Geo-Fence Violation",
-    "Medical Alert",
-  ];
+  String _selectedFilter = 'all';
 
   @override
   void initState() {
@@ -34,31 +26,42 @@ class _IncidentLogsScreenState extends State<IncidentLogsScreen> {
     final data = await _apiService.getIncidents();
     setState(() {
       _incidents = data;
-      _filteredIncidents = _incidents;
       _isLoading = false;
-    });
-  }
-
-  void _applyFilter(String? value) {
-    if (value == null) return;
-    setState(() {
-      _filter = value;
-      if (_filter == "All") {
-        _filteredIncidents = _incidents;
-      } else {
-        _filteredIncidents = _incidents
-            .where(
-              (incident) =>
-                  incident['type']?.toString().toLowerCase() ==
-                  _filter.toLowerCase(),
-            )
-            .toList();
-      }
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final filteredIncidents = _incidents.where((log) {
+      final filter = _selectedFilter.toLowerCase();
+      if (filter == 'all') return true;
+
+      final role = (log['responderRole'] ?? '').toString().toLowerCase();
+      final type = (log['type'] ?? '').toString().toLowerCase();
+      final details = (log['details'] ?? log['summary'] ?? '').toString().toLowerCase();
+
+      // Final classification helper
+      bool isMedical = role == 'medical' || 
+                        type.contains('medical') || 
+                        type.contains('hospital') ||
+                        details.contains('medical') || 
+                        details.contains('hospital') ||
+                        details.contains('ambulance');
+      
+      bool isGeoFence = type.contains('geo-fence') || 
+                         type.contains('violation') || 
+                         details.contains('geo-fence');
+
+      if (filter == 'medical') return isMedical;
+      if (filter == 'geo-fence violation') return isGeoFence;
+      if (filter == 'police') {
+        // Police is anything NOT medical and NOT geofence
+        return !isMedical && !isGeoFence;
+      }
+
+      return true;
+    }).toList();
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
@@ -95,69 +98,72 @@ class _IncidentLogsScreenState extends State<IncidentLogsScreen> {
       ),
       body: Column(
         children: [
-          Container(
-            margin: const EdgeInsets.all(16),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFFF1F1F1)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.01),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
-              children: [
-                const Icon(
-                  Icons.filter_list_rounded,
-                  size: 20,
-                  color: Colors.grey,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: _filter,
-                      icon: const Icon(
-                        Icons.keyboard_arrow_down_rounded,
-                        color: Colors.grey,
+              children:
+                  [
+                    {'key': 'all', 'label': 'All'},
+                    {'key': 'police', 'label': 'Police (Threats/Accidents)'},
+                    {'key': 'medical', 'label': 'Medical'},
+                    {'key': 'geo-fence violation', 'label': 'Geo-Fence'},
+                  ].map((filter) {
+                    final isSelected = _selectedFilter == filter['key'];
+                    Color filterColor = Colors.black;
+                    if (filter['key'] == 'police') filterColor = Colors.red;
+                    if (filter['key'] == 'medical') filterColor = Colors.blue;
+                    if (filter['key'] == 'geo-fence violation')
+                      filterColor = Colors.purple;
+
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: FilterChip(
+                        label: Text(
+                          filter['label']!,
+                          style: TextStyle(
+                            color: isSelected ? Colors.white : filterColor,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 12,
+                          ),
+                        ),
+                        selected: isSelected,
+                        onSelected: (selected) {
+                          setState(() => _selectedFilter = filter['key']!);
+                        },
+                        backgroundColor: filterColor.withValues(alpha: 0.05),
+                        selectedColor: filterColor,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: BorderSide(
+                            color: isSelected
+                                ? filterColor
+                                : filterColor.withValues(alpha: 0.2),
+                          ),
+                        ),
+                        showCheckmark: false,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                       ),
-                      style: const TextStyle(
-                        fontFamily: 'Inter',
-                        color: Colors.black,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                      ),
-                      items: _filterOptions
-                          .map(
-                            (f) => DropdownMenuItem(value: f, child: Text(f)),
-                          )
-                          .toList(),
-                      onChanged: _applyFilter,
-                      isExpanded: true,
-                    ),
-                  ),
-                ),
-              ],
+                    );
+                  }).toList(),
             ),
           ),
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
-                : _filteredIncidents.isEmpty
+                : filteredIncidents.isEmpty
                 ? const Center(child: Text("No incidents logged."))
                 : ListView.separated(
                     physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-                    itemCount: _filteredIncidents.length,
+                    padding: const EdgeInsets.all(16),
+                    itemCount: filteredIncidents.length,
                     separatorBuilder: (context, index) =>
                         const SizedBox(height: 12),
                     itemBuilder: (context, index) {
-                      final log = _filteredIncidents[index];
+                      final log = filteredIncidents[index];
                       final typeColor = _getStatusColor(
                         log['type'] ?? 'default',
                       );
@@ -179,6 +185,15 @@ class _IncidentLogsScreenState extends State<IncidentLogsScreen> {
                           ],
                         ),
                         child: ListTile(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    IncidentDetailsScreen(incident: log),
+                              ),
+                            );
+                          },
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16,
                             vertical: 8,

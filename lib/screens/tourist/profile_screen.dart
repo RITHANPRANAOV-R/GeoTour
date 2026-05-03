@@ -7,6 +7,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:http/http.dart' as http;
 import '../common/report_viewer_screen.dart';
 import '../../widgets/premium_toast.dart';
+import '../../services/user_service.dart';
 
 class TouristProfileScreen extends StatefulWidget {
   const TouristProfileScreen({super.key});
@@ -19,6 +20,7 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
   bool isLoading = false;
   bool isUploading = false;
   bool _isChanged = false;
+  List<String> _userRoles = [];
 
   // Cloudinary Configuration
   static const String _cloudName = "dwkswq6b6";
@@ -27,7 +29,7 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
   // Controllers
   final TextEditingController nameController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
-  final TextEditingController travelIdController = TextEditingController();
+  final TextEditingController touristIdController = TextEditingController();
 
   final TextEditingController medicationsController = TextEditingController();
   final TextEditingController allergiesController = TextEditingController();
@@ -63,6 +65,18 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
     setState(() => isLoading = true);
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
+      // Load roles first to show switching options
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+      if (userDoc.exists) {
+        final userData = userDoc.data() as Map<String, dynamic>;
+        setState(() {
+          _userRoles = List<String>.from(userData['roles'] ?? []);
+        });
+      }
+
       final doc = await FirebaseFirestore.instance
           .collection('tourists')
           .doc(user.uid)
@@ -74,9 +88,10 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
         final e = data['emergencyContact'] as Map<String, dynamic>?;
 
         setState(() {
+          // Use 'username' specifically for tourists
           nameController.text = data['username'] ?? user.displayName ?? "";
           phoneController.text = data['phone'] ?? "";
-          travelIdController.text = data['travelId'] ?? "";
+          touristIdController.text = data['touristId'] ?? "";
 
           if (m != null) {
             bloodGroup = m['bloodGroup'] ?? "O+";
@@ -103,7 +118,7 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
     int totalPoints = 0;
     if (nameController.text.isNotEmpty) totalPoints += 15;
     if (phoneController.text.isNotEmpty) totalPoints += 15;
-    if (travelIdController.text.isNotEmpty) totalPoints += 10;
+    if (touristIdController.text.isNotEmpty) totalPoints += 10;
     if (medicationsController.text.isNotEmpty ||
         allergiesController.text.isNotEmpty)
       totalPoints += 20;
@@ -177,7 +192,7 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
             .set({
               'username': nameController.text.trim(),
               'phone': phoneController.text.trim(),
-              'travelId': travelIdController.text.trim(),
+              'touristId': touristIdController.text.trim(),
               'medicalInfo': {
                 'bloodGroup': bloodGroup,
                 'medications': medicationsController.text.trim(),
@@ -283,9 +298,10 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
                 keyboardType: TextInputType.phone,
               ),
               _buildNativeInput(
-                "Government Travel ID",
-                travelIdController,
-                Icons.card_membership_rounded,
+                "Tourist ID (Batch No)",
+                touristIdController,
+                Icons.badge_rounded,
+                readOnly: true,
               ),
             ]),
             const SizedBox(height: 20),
@@ -360,6 +376,69 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
               Icons.file_present_outlined,
               [_buildNativeReportCard()],
             ),
+            const SizedBox(height: 20),
+
+            // Account Roles Section (Switch to other identities)
+            if (_userRoles.length > 1)
+              _buildNativeSection(
+                "Switch Identity",
+                Icons.switch_account_outlined,
+                [
+                  ..._userRoles.where((r) => r != 'tourist').map((role) {
+                    IconData roleIcon = Icons.person_rounded;
+                    String roleName = role;
+                    if (role == 'police') {
+                      roleIcon = Icons.local_police_rounded;
+                      roleName = "Police Responder";
+                    } else if (role == 'hospital' || role == 'medical') {
+                      roleIcon = Icons.local_hospital_rounded;
+                      roleName = "Medical Staff";
+                    } else if (role == 'admin') {
+                      roleIcon = Icons.admin_panel_settings_rounded;
+                      roleName = "Administrator";
+                    }
+
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(roleIcon, color: Colors.black, size: 20),
+                      ),
+                      title: Text(
+                        "Switch to $roleName",
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                        ),
+                      ),
+                      subtitle: const Text(
+                        "Load your specialized role data",
+                        style: TextStyle(fontSize: 11),
+                      ),
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: () async {
+                        final user = FirebaseAuth.instance.currentUser;
+                        if (user != null) {
+                          setState(() => isLoading = true);
+                          await UserService().switchRole(user.uid, role);
+                          if (mounted) {
+                            // Redirect to AuthWrapper to load correct role dashboard or setup
+                            Navigator.pushNamedAndRemoveUntil(
+                              context,
+                              '/',
+                              (route) => false,
+                            );
+                          }
+                        }
+                      },
+                    );
+                  }),
+                ],
+              ),
             const SizedBox(height: 32),
 
             // Bottom Save Button
@@ -405,7 +484,7 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
         border: Border.all(color: const Color(0xFFF1F1F1), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.015),
+            color: Colors.black.withValues(alpha: 0.015),
             blurRadius: 24,
             offset: const Offset(0, 10),
           ),
@@ -428,13 +507,13 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
                 ),
                 decoration: BoxDecoration(
                   color: isActive
-                      ? Colors.green.withOpacity(0.1)
-                      : Colors.grey.withOpacity(0.1),
+                      ? Colors.green.withValues(alpha: 0.1)
+                      : Colors.grey.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: isActive
-                        ? Colors.green.withOpacity(0.2)
-                        : Colors.grey.withOpacity(0.2),
+                        ? Colors.green.withValues(alpha: 0.2)
+                        : Colors.grey.withValues(alpha: 0.2),
                   ),
                 ),
                 child: Row(
@@ -522,7 +601,7 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
         border: Border.all(color: const Color(0xFFF1F1F1), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.015),
+            color: Colors.black.withValues(alpha: 0.015),
             blurRadius: 24,
             offset: const Offset(0, 10),
           ),
@@ -536,7 +615,7 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
+                  color: Colors.blue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(icon, color: Colors.blue, size: 20),
@@ -574,6 +653,7 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
     TextInputType? keyboardType,
     int maxLines = 1,
     String? hint,
+    bool readOnly = false,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -590,15 +670,20 @@ class _TouristProfileScreenState extends State<TouristProfileScreen> {
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
-            color: const Color(0xFFF8F9FA),
+            color: readOnly ? Colors.grey.shade100 : const Color(0xFFF8F9FA),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: const Color(0xFFEEEEEE)),
           ),
           child: TextField(
             controller: controller,
             maxLines: maxLines,
+            readOnly: readOnly,
             keyboardType: keyboardType,
-            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 14,
+              color: readOnly ? Colors.grey : Colors.black,
+            ),
             decoration: InputDecoration(
               isDense: true,
               hintText: hint,

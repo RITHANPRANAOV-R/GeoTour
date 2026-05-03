@@ -32,6 +32,41 @@ class _TouristProfileSetupScreenState extends State<TouristProfileSetupScreen> {
   bool termsAccepted = false;
 
   bool isLoading = false;
+  String? existingPoliceName;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadExistingProfile();
+  }
+
+  Future<void> _loadExistingProfile() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      // Check if user has a police profile - we offer it but don't force it
+      final policeDoc = await FirebaseFirestore.instance
+          .collection('police')
+          .doc(user.uid)
+          .get();
+
+      if (policeDoc.exists && mounted) {
+        final data = policeDoc.data();
+        if (data != null && data['name'] != null) {
+          setState(() {
+            existingPoliceName = data['name'];
+            // Pre-fill only if currently empty
+            if (usernameController.text.isEmpty) {
+              usernameController.text = data['name'];
+            }
+          });
+        }
+      }
+    } catch (e) {
+      // Silent error
+    }
+  }
 
   @override
   void dispose() {
@@ -113,8 +148,11 @@ class _TouristProfileSetupScreenState extends State<TouristProfileSetupScreen> {
     final uid = user.uid;
 
     try {
+      final touristId = await UserService().generateTouristId(uid);
+
       await FirebaseFirestore.instance.collection("tourists").doc(uid).set({
         "uid": uid,
+        "touristId": touristId,
         "email": user.email ?? "",
         "username": usernameController.text.trim(),
         "phone": phoneController.text.trim(),

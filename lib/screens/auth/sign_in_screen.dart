@@ -46,45 +46,75 @@ class _SignInScreenState extends State<SignInScreen> {
 
     setState(() => isLoading = true);
 
-    User? user = await AuthService().signInWithEmailPassword(email, password);
+    try {
+      User? user = await AuthService().signInWithEmailPassword(email, password);
 
-    if (user == null) {
+      if (user == null) {
+        setState(() => isLoading = false);
+        if (mounted) {
+          PremiumToast.show(
+            context,
+            title: "Login Failed",
+            message: "The email or password you entered is incorrect.",
+            type: ToastType.error,
+          );
+        }
+        return;
+      }
+
+      final userData = await UserService().getUserMainDoc(user.uid);
+
+      if (userData == null) {
+        setState(() => isLoading = false);
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, "/signUp");
+        }
+        return;
+      }
+
+      final roles = userData["roles"] as List<dynamic>? ?? [];
+
+      if (roles.length > 1) {
+        setState(() => isLoading = false);
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, "/postAuthRoleSelection");
+        }
+      } else {
+        final role = userData["activeRole"] ?? roles.first;
+        final roleCompletion =
+            userData["roleCompletion"] as Map<String, dynamic>? ?? {};
+        final isCompleted = roleCompletion[role] ?? false;
+        if (mounted) {
+          _navigateBasedOnRoleAndCompletion(role, isCompleted);
+        }
+      }
+    } on FirebaseAuthException catch (e) {
+      setState(() => isLoading = false);
+      if (mounted) {
+        String message = "Authentication failed.";
+        if (e.code == 'user-not-found') {
+          message = "No account found with this email.";
+        } else if (e.code == 'wrong-password' || e.code == 'invalid-credential') {
+          message = "Incorrect password. Please try again.";
+        } else {
+          message = e.message ?? message;
+        }
+        PremiumToast.show(
+          context,
+          title: "Login Failed",
+          message: message,
+          type: ToastType.error,
+        );
+      }
+    } catch (e) {
       setState(() => isLoading = false);
       if (mounted) {
         PremiumToast.show(
           context,
-          title: "Login Failed",
-          message: "The email or password you entered is incorrect.",
+          title: "System Error",
+          message: "An unexpected error occurred. Please try again.",
           type: ToastType.error,
         );
-      }
-      return;
-    }
-
-    final userData = await UserService().getUserMainDoc(user.uid);
-
-    if (userData == null) {
-      setState(() => isLoading = false);
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, "/signUp");
-      }
-      return;
-    }
-
-    final roles = userData["roles"] as List<dynamic>? ?? [];
-
-    if (roles.length > 1) {
-      setState(() => isLoading = false);
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, "/postAuthRoleSelection");
-      }
-    } else {
-      final role = userData["activeRole"] ?? roles.first;
-      final roleCompletion =
-          userData["roleCompletion"] as Map<String, dynamic>? ?? {};
-      final isCompleted = roleCompletion[role] ?? false;
-      if (mounted) {
-        _navigateBasedOnRoleAndCompletion(role, isCompleted);
       }
     }
   }
@@ -92,51 +122,84 @@ class _SignInScreenState extends State<SignInScreen> {
   Future<void> handleGoogleLogin() async {
     setState(() => isLoading = true);
 
-    User? user = await AuthService().signInWithGoogle();
+    try {
+      User? user = await AuthService().signInWithGoogle();
 
-    if (user == null) {
+      if (user == null) {
+        setState(() => isLoading = false);
+        if (mounted) {
+          PremiumToast.show(
+            context,
+            title: "Google Sync Cancelled",
+            message: "Google login was cancelled by the user.",
+            type: ToastType.info,
+          );
+        }
+        return;
+      }
+
+      final userData = await UserService().getUserMainDoc(user.uid);
+
+      if (userData == null) {
+        setState(() => isLoading = false);
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, "/googleInitialRoleSelection");
+        }
+        return;
+      }
+
+      final roles = userData["roles"] as List<dynamic>? ?? [];
+
+      if (roles.length > 1) {
+        setState(() => isLoading = false);
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, "/postAuthRoleSelection");
+        }
+      } else {
+        final role = userData["activeRole"] ?? roles.first;
+        final roleCompletion =
+            userData["roleCompletion"] as Map<String, dynamic>? ?? {};
+        final isCompleted = roleCompletion[role] ?? false;
+        if (mounted) {
+          _navigateBasedOnRoleAndCompletion(role, isCompleted);
+        }
+      }
+    } on FirebaseAuthException catch (e) {
       setState(() => isLoading = false);
       if (mounted) {
         PremiumToast.show(
           context,
-          title: "Google Sync Cancelled",
-          message: "Google login was cancelled by the user.",
-          type: ToastType.info,
+          title: "Login Failed",
+          message: e.message ?? "Authentication failed.",
+          type: ToastType.error,
         );
       }
-      return;
-    }
-
-    final userData = await UserService().getUserMainDoc(user.uid);
-
-    if (userData == null) {
+    } catch (e) {
       setState(() => isLoading = false);
       if (mounted) {
-        Navigator.pushReplacementNamed(context, "/googleInitialRoleSelection");
-      }
-      return;
-    }
-
-    final roles = userData["roles"] as List<dynamic>? ?? [];
-
-    if (roles.length > 1) {
-      setState(() => isLoading = false);
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, "/postAuthRoleSelection");
-      }
-    } else {
-      final role = userData["activeRole"] ?? roles.first;
-      final roleCompletion =
-          userData["roleCompletion"] as Map<String, dynamic>? ?? {};
-      final isCompleted = roleCompletion[role] ?? false;
-      if (mounted) {
-        _navigateBasedOnRoleAndCompletion(role, isCompleted);
+        PremiumToast.show(
+          context,
+          title: "System Error",
+          message: "An unexpected error occurred. Please try again.",
+          type: ToastType.error,
+        );
       }
     }
   }
 
   void _navigateBasedOnRoleAndCompletion(String role, bool completed) {
     setState(() => isLoading = false);
+
+    final user = AuthService().currentUser;
+    if (mounted && user != null) {
+      PremiumToast.show(
+        context,
+        title: "Login Successful",
+        message: "Welcome back, ${user.email}!",
+        type: ToastType.success,
+      );
+    }
+
     if (completed) {
       switch (role) {
         case "tourist":

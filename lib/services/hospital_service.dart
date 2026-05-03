@@ -37,7 +37,6 @@ class HospitalService {
         .collection('hospitals')
         .doc(hospitalId)
         .collection('alerts')
-        .where('status', isEqualTo: 'pending')
         .snapshots();
   }
 
@@ -51,15 +50,49 @@ class HospitalService {
   }
 
   Future<void> acceptCase(String hospitalId, String alertId) async {
-    await _firestore
-        .collection('hospitals')
-        .doc(hospitalId)
-        .collection('alerts')
-        .doc(alertId)
-        .update({
+    // Fetch global alert to ensure we have the full data for the subcollection
+    final globalAlert = await _firestore.collection('hospital_alerts').doc(alertId).get();
+    
+    if (!globalAlert.exists) throw Exception("Alert not found");
+    
+    final alertData = globalAlert.data()!;
+    alertData['status'] = 'ongoing';
+    alertData['acceptedAt'] = FieldValue.serverTimestamp();
+    alertData['targetHospitalId'] = hospitalId;
+
+    final batch = _firestore.batch();
+    
+    // 1. Update hospital sub-collection with full data so Cases tab displays correctly
+    batch.set(
+      _firestore.collection('hospitals').doc(hospitalId).collection('alerts').doc(alertId),
+      alertData,
+      SetOptions(merge: true)
+    );
+
+    // 2. Update global hospital_alerts collection to claim the case
+    batch.update(
+      _firestore.collection('hospital_alerts').doc(alertId),
+      {
+        'status': 'ongoing',
+        'acceptedAt': FieldValue.serverTimestamp(),
+        'targetHospitalId': hospitalId,
+      }
+    );
+    
+    // 3. Update user's sub-collection for status tracking
+    final String? userId = alertData['userId'] ?? alertData['victimId'];
+    if (userId != null) {
+      batch.update(
+        _firestore.collection('users').doc(userId).collection('alerts').doc(alertId),
+        {
           'status': 'ongoing',
           'acceptedAt': FieldValue.serverTimestamp(),
-        });
+          'hospitalId': hospitalId,
+        }
+      );
+    }
+
+    await batch.commit();
   }
 
   Future<void> completeCase(
@@ -67,16 +100,59 @@ class HospitalService {
     String alertId,
     String description,
   ) async {
-    await _firestore
-        .collection('hospitals')
-        .doc(hospitalId)
-        .collection('alerts')
-        .doc(alertId)
-        .update({
-          'status': 'completed',
-          'completedAt': FieldValue.serverTimestamp(),
-          'caseDescription': description,
-        });
+    final batch = _firestore.batch();
+
+    batch.update(
+      _firestore.collection('hospitals').doc(hospitalId).collection('alerts').doc(alertId),
+      {
+        'status': 'completed',
+        'completedAt': FieldValue.serverTimestamp(),
+        'caseDescription': description,
+      }
+    );
+
+    batch.update(
+      _firestore.collection('hospital_alerts').doc(alertId),
+      {
+        'status': 'completed',
+        'completedAt': FieldValue.serverTimestamp(),
+        'caseDescription': description,
+      }
+    );
+
+    // 3. Update user's sub-collection for status tracking
+    final globalDoc = await _firestore.collection('hospital_alerts').doc(alertId).get();
+    if (globalDoc.exists) {
+      final alertData = globalDoc.data()!;
+      final userId = alertData['userId'] ?? alertData['victimId'];
+      if (userId != null) {
+        batch.update(
+          _firestore.collection('users').doc(userId).collection('alerts').doc(alertId),
+          {
+            'status': 'completed',
+            'completedAt': FieldValue.serverTimestamp(),
+            'caseDescription': description,
+          }
+        );
+      }
+
+      // 4. Log to Incidents collection for Admin
+      DocumentReference incidentRef = _firestore.collection('incidents').doc();
+      batch.set(incidentRef, {
+        'victimName': alertData['name'] ?? 'Unknown',
+        'summary': "Medical response completed: $description",
+        'riskLevel': alertData['riskLevel'] ?? 'Medium',
+        'hospitalId': hospitalId,
+        'officerName': "Medical Team", // Fallback name
+        'acceptedByName': "Medical Team",
+        'responderRole': 'medical',
+        'alertId': alertId,
+        'timestamp': FieldValue.serverTimestamp(),
+        'type': 'medical alert',
+      });
+    }
+
+    await batch.commit();
   }
 
   Future<void> transferCase({
@@ -114,6 +190,17 @@ class HospitalService {
 
     batch.set(newRef, newData);
 
+    // 3. Update global hospital_alerts so the new hospital sees it
+    batch.update(
+      _firestore.collection('hospital_alerts').doc(alertId),
+      {
+        'status': 'pending',
+        'targetHospitalId': toHospitalId,
+        'transferredFrom': fromHospitalId,
+        'timestamp': FieldValue.serverTimestamp(),
+      }
+    );
+
     await batch.commit();
   }
 
@@ -123,14 +210,18 @@ class HospitalService {
     required double lat,
     required double lng,
     required String medicalInfo,
+    String? phone,
+    String? contacts,
     required String hospitalId,
     required String riskLevel,
   }) async {
     final alertData = {
-      'victimId': victimId,
+      'userId': victimId, // Changed from victimId to userId for consistency
       'victimName': victimName,
       'location': GeoPoint(lat, lng),
       'medicalInfo': medicalInfo,
+      'phone': phone,
+      'contacts': contacts,
       'riskLevel': riskLevel,
       'status': 'pending',
       'timestamp': FieldValue.serverTimestamp(),
@@ -144,13 +235,17 @@ class HospitalService {
           .collection('hospital_alerts')
           .add(alertData);
 
-      // 2. Also add to the specific hospital's alerts sub-collection
-      await _firestore
-          .collection('hospitals')
-          .doc(hospitalId)
-          .collection('alerts')
-          .doc(alertDoc.id)
-          .set(alertData);
+      debugPrint("Dispatched Hospital SOS to Hospital ID: $hospitalId");
+
+      // 2. Also add to the specific hospital's alerts sub-collection if not 'all'
+      if (hospitalId != 'all') {
+        await _firestore
+            .collection('hospitals')
+            .doc(hospitalId)
+            .collection('alerts')
+            .doc(alertDoc.id)
+            .set(alertData);
+      }
 
       // 3. Add to user's alert history
       await _firestore
@@ -163,5 +258,12 @@ class HospitalService {
       debugPrint("Error triggering hospital SOS: $e");
       rethrow;
     }
+  }
+
+  Stream<QuerySnapshot> getGlobalHospitalAlertsStream(String hospitalId) {
+    return _firestore
+        .collection('hospital_alerts')
+        .where('targetHospitalId', whereIn: [hospitalId, 'unassigned', 'all'])
+        .snapshots();
   }
 }

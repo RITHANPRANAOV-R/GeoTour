@@ -19,10 +19,18 @@ import 'screens/admin/admin_home.dart';
 import 'screens/police/police_dashboard_choice.dart';
 import 'screens/auth/admin_login_screen.dart';
 import 'screens/auth/auth_wrapper.dart';
+import 'services/notification_service.dart';
+import 'screens/admin/geofence_management.dart';
+import 'screens/admin/system_monitoring.dart';
+import 'screens/admin/user_access_control.dart';
+import 'screens/admin/incident_logs.dart';
+import 'services/alert_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await NotificationService().initialize();
+  AlertService().initialize();
   runApp(const MyApp());
 }
 
@@ -146,6 +154,10 @@ class MyApp extends StatelessWidget {
         "/touristHome": (context) => const DashboardScreen(),
         "/policeDashboardChoice": (context) =>
             const PoliceDashboardChoiceScreen(),
+        "/geofenceManagement": (context) => const GeofenceManagementScreen(),
+        "/adminMonitoring": (context) => const SystemMonitoringScreen(),
+        "/userAccessControl": (context) => const UserAccessControlScreen(),
+        "/incidentLogs": (context) => const IncidentLogsScreen(),
       },
     );
   }

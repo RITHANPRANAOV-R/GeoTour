@@ -25,6 +25,18 @@ class _PoliceChatScreenState extends State<PoliceChatScreen> {
   final String? _currentUserId = FirebaseAuth.instance.currentUser?.uid;
 
   @override
+  void initState() {
+    super.initState();
+    _markRead();
+  }
+
+  void _markRead() {
+    if (_currentUserId != null) {
+      _chatService.markAsRead(widget.chatId, _currentUserId!);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
@@ -52,6 +64,9 @@ class _PoliceChatScreenState extends State<PoliceChatScreen> {
             child: StreamBuilder<QuerySnapshot>(
               stream: _chatService.getMessagesStream(widget.chatId),
               builder: (context, snapshot) {
+                if (snapshot.hasData) {
+                  _markRead();
+                }
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
@@ -148,11 +163,16 @@ class _PoliceChatScreenState extends State<PoliceChatScreen> {
                       if (_controller.text.isNotEmpty && senderId != null) {
                         final text = _controller.text;
                         _controller.clear();
+                        final List<String> participants = [senderId];
+                        if (widget.recipientId.isNotEmpty) {
+                          participants.add(widget.recipientId);
+                        }
+                        
                         await _chatService.sendMessage(
                           chatId: widget.chatId,
                           senderId: senderId,
                           text: text,
-                          participants: [senderId, widget.recipientId],
+                          participants: participants,
                         );
                       }
                     },

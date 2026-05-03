@@ -56,9 +56,9 @@ class _HospitalDashboardState extends State<HospitalDashboard> {
       ),
       drawer: const AppDrawer(),
       body: RepaintBoundary(
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 300),
-          child: _screens[_selectedIndex],
+        child: IndexedStack(
+          index: _selectedIndex,
+          children: _screens,
         ),
       ),
       bottomNavigationBar: RepaintBoundary(

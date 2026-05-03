@@ -10,27 +10,28 @@ class AuthService {
   User? get currentUser => _auth.currentUser;
 
   Future<User?> signUpWithEmailPassword(String email, String password) async {
-    try {
-      final userCredential = await _auth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-      return userCredential.user;
-    } catch (e) {
-      return null;
-    }
+    final userCredential = await _auth.createUserWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
+    return userCredential.user;
   }
 
   Future<User?> signInWithEmailPassword(String email, String password) async {
-    try {
-      final userCredential = await _auth.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-      return userCredential.user;
-    } catch (e) {
-      return null;
+    final userCredential = await _auth.signInWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
+    
+    if (userCredential.user != null) {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).get();
+      if (doc.exists && doc.data()?['isBlocked'] == true) {
+        await _auth.signOut();
+        throw FirebaseAuthException(code: 'user-blocked', message: 'Your account has been blocked by the administrator.');
+      }
     }
+    
+    return userCredential.user;
   }
 
   Future<User?> signInWithGoogle() async {
@@ -58,7 +59,18 @@ class AuthService {
         credential,
       );
 
+      if (userCredential.user != null) {
+        final doc = await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).get();
+        if (doc.exists && doc.data()?['isBlocked'] == true) {
+          await _auth.signOut();
+          await googleSignIn.signOut();
+          throw FirebaseAuthException(code: 'user-blocked', message: 'Your account has been blocked by the administrator.');
+        }
+      }
+
       return userCredential.user;
+    } on FirebaseAuthException catch (e) {
+      rethrow;
     } catch (e) {
       return null;
     }
