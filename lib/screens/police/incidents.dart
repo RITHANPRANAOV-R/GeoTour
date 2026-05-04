@@ -57,8 +57,8 @@ class IncidentsScreen extends StatelessWidget {
                   }
 
                   return IncidentCard(
-                    victimName: incident['victimName'] ?? 'Unknown',
-                    summary: incident['summary'] ?? 'No details.',
+                    victimName: incident['victimName'] ?? incident['name'] ?? incident['username'] ?? 'Unknown',
+                    summary: incident['summary'] ?? incident['threat'] ?? 'No details.',
                     date: dateText,
                     onTap: () {
                       _showIncidentDetails(context, incident, dateText);
@@ -147,7 +147,7 @@ class IncidentsScreen extends StatelessWidget {
                       children: [
                         _buildDetailRow(
                           "Victim",
-                          incident['victimName'] ?? 'Unknown',
+                          incident['victimName'] ?? incident['name'] ?? incident['username'] ?? 'Unknown',
                           Icons.person_outline_rounded,
                         ),
                         const Padding(

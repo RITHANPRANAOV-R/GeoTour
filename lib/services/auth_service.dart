@@ -69,9 +69,9 @@ class AuthService {
       }
 
       return userCredential.user;
-    } on FirebaseAuthException catch (e) {
+    } on FirebaseAuthException {
       rethrow;
-    } catch (e) {
+    } catch (_) {
       return null;
     }
   }
@@ -92,7 +92,7 @@ class AuthService {
       // 2. If exists, send reset email
       await _auth.sendPasswordResetEmail(email: email);
       return PasswordResetResult.success;
-    } catch (e) {
+    } catch (_) {
       return PasswordResetResult.error;
     }
   }

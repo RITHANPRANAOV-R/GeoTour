@@ -172,7 +172,10 @@ class PoliceService {
     // Move to Incidents
     DocumentReference incidentRef = _firestore.collection('incidents').doc();
     batch.set(incidentRef, {
-      'victimName': alertData['name'] ?? 'Unknown',
+      'victimName': alertData['victimName'] ??
+          alertData['name'] ??
+          alertData['username'] ??
+          'Unknown',
       'summary':
           "Police response completed for threat: ${alertData['threat'] ?? 'N/A'}",
       'riskLevel': alertData['riskLevel'] ?? 'High',

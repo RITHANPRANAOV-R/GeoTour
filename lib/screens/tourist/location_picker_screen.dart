@@ -115,6 +115,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
         ],
       ),
       body: Stack(
+        fit: StackFit.expand,
         children: [
           FlutterMap(
             mapController: _mapController,

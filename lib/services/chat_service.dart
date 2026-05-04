@@ -24,12 +24,6 @@ class ChatService {
       'timestamp': FieldValue.serverTimestamp(),
     };
 
-    final chatData = {
-      'participants': participants,
-      'lastMessage': text,
-      'lastTimestamp': FieldValue.serverTimestamp(),
-    };
-
     final batch = _firestore.batch();
 
     // Update or create chat header with arrayUnion to prevent removing existing participants

@@ -42,14 +42,14 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
   void initState() {
     super.initState();
     GeoService().startMonitoring();
-    
+
     // Seed initial position so the route draws instantly without waiting for movement
     final pos = GeoService().currentPosition;
     if (pos != null) {
       _lastPolicePos = LatLng(pos.latitude, pos.longitude);
       _lastRouteUpdatePos = _lastPolicePos;
     }
-    
+
     GeoService().addListener(_handleLocationUpdate);
   }
 
@@ -63,17 +63,18 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
     final pos = GeoService().currentPosition;
     if (pos != null) {
       final newPos = LatLng(pos.latitude, pos.longitude);
-      
+
       // Update marker position more frequently (every 2 meters) for smooth movement
       if (_lastPolicePos == null ||
           Distance().as(LengthUnit.Meter, _lastPolicePos!, newPos) > 2) {
         setState(() {
           _lastPolicePos = newPos;
         });
-        
+
         // Recalculate route only when significant movement (15m) occurs to save battery/data
-        if (_lastRouteUpdatePos == null || 
-            Distance().as(LengthUnit.Meter, _lastRouteUpdatePos!, newPos) > 15) {
+        if (_lastRouteUpdatePos == null ||
+            Distance().as(LengthUnit.Meter, _lastRouteUpdatePos!, newPos) >
+                15) {
           _lastRouteUpdatePos = newPos;
           _updateRouteIfNeeded();
         }
@@ -95,7 +96,7 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
     if (_currentVictimPos != null) {
       _mapController.move(_currentVictimPos!, 15.0);
     }
-    
+
     // Force route recalculation and marker update
     setState(() {
       _lastRouteUpdatePos = null;
@@ -181,7 +182,8 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
     return StreamBuilder<DocumentSnapshot>(
       stream: _policeService.getAlertStream(alertId),
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+        if (snapshot.connectionState == ConnectionState.waiting &&
+            !snapshot.hasData) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
@@ -201,11 +203,16 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
         // Defer state mutations
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
-          
+
           bool shouldUpdateRoute = false;
           if (victimPos != null) {
             if (_currentVictimPos == null ||
-                const Distance().as(LengthUnit.Meter, _currentVictimPos!, victimPos) > 10) {
+                const Distance().as(
+                      LengthUnit.Meter,
+                      _currentVictimPos!,
+                      victimPos,
+                    ) >
+                    10) {
               _currentVictimPos = victimPos;
               shouldUpdateRoute = true;
             }
@@ -226,64 +233,67 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
         return Scaffold(
           extendBody: true,
           backgroundColor: const Color(0xFFF8F9FA),
-          appBar: _isFullScreen ? null : AppBar(
-            backgroundColor: Colors.white,
-            elevation: 0,
-            scrolledUnderElevation: 0,
-            shape: Border(
-              bottom: BorderSide(color: Colors.grey.shade200, width: 1),
-            ),
-            leading: IconButton(
-              icon: const Icon(
-                Icons.arrow_back_ios_new_rounded,
-                color: Colors.black,
-                size: 20,
-              ),
-              onPressed: () => Navigator.pop(context),
-            ),
-            title: const Text(
-              "Victim Details",
-              style: TextStyle(
-                color: Colors.black,
-                fontWeight: FontWeight.w800,
-                fontSize: 20,
-                letterSpacing: -0.5,
-              ),
-            ),
-            actions: [
-              Padding(
-                padding: const EdgeInsets.only(right: 16.0),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
+          appBar: _isFullScreen
+              ? null
+              : AppBar(
+                  backgroundColor: Colors.white,
+                  elevation: 0,
+                  scrolledUnderElevation: 0,
+                  shape: Border(
+                    bottom: BorderSide(color: Colors.grey.shade200, width: 1),
                   ),
-                  decoration: BoxDecoration(
-                    color: _getRiskColor(
-                      data['riskLevel']?.toString() ?? "High",
-                    ).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: _getRiskColor(
-                        data['riskLevel']?.toString() ?? "High",
-                      ).withValues(alpha: 0.2),
+                  leading: IconButton(
+                    icon: const Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      color: Colors.black,
+                      size: 20,
                     ),
+                    onPressed: () => Navigator.pop(context),
                   ),
-                  child: Text(
-                    "${(data['riskLevel']?.toString() ?? "High").toUpperCase()} RISK",
+                  title: const Text(
+                    "Victim Details",
                     style: TextStyle(
-                      color: _getRiskColor(
-                        data['riskLevel']?.toString() ?? "High",
-                      ),
-                      fontWeight: FontWeight.w700,
-                      fontSize: 10,
+                      color: Colors.black,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 20,
+                      letterSpacing: -0.5,
                     ),
                   ),
+                  actions: [
+                    Padding(
+                      padding: const EdgeInsets.only(right: 16.0),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _getRiskColor(
+                            data['riskLevel']?.toString() ?? "High",
+                          ).withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: _getRiskColor(
+                              data['riskLevel']?.toString() ?? "High",
+                            ).withValues(alpha: 0.2),
+                          ),
+                        ),
+                        child: Text(
+                          "${(data['riskLevel']?.toString() ?? "High").toUpperCase()} RISK",
+                          style: TextStyle(
+                            color: _getRiskColor(
+                              data['riskLevel']?.toString() ?? "High",
+                            ),
+                            fontWeight: FontWeight.w700,
+                            fontSize: 10,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
-          ),
           body: Stack(
+            fit: StackFit.expand,
             children: [
               // Main Content
               if (!_isFullScreen)
@@ -307,7 +317,9 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
                             const SizedBox(height: 16),
                             _buildDetailCard(data),
                             const SizedBox(height: 24),
-                            _buildMedicalSection(data['userId'] ?? data['victimId']),
+                            _buildMedicalSection(
+                              data['userId'] ?? data['victimId'],
+                            ),
                             const SizedBox(height: 100),
                           ],
                         ),
@@ -321,7 +333,7 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
                 Positioned.fill(
                   child: _buildMapSection(context, victimPos, data),
                 ),
-              
+
               // Full Screen Exit Button
               if (_isFullScreen)
                 Positioned(
@@ -347,300 +359,338 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
                           ),
                         ],
                       ),
-                      child: const Icon(Icons.arrow_back_rounded, color: Colors.black),
+                      child: const Icon(
+                        Icons.arrow_back_rounded,
+                        color: Colors.black,
+                      ),
                     ),
                   ),
                 ),
 
-            // Full Screen Toggle Button (Always on top)
-            Positioned(
-              top: _isFullScreen
-                  ? MediaQuery.of(context).padding.top + 16
-                  : 16, // Body relative
-              right: 16,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  GestureDetector(
-                    onTap: () {
-                      try {
-                        _savedCenter = _mapController.camera.center;
-                        _savedZoom = _mapController.camera.zoom;
-                      } catch (_) {}
-                      setState(() => _isFullScreen = !_isFullScreen);
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.15),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                        border: Border.all(color: Colors.grey.shade200),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            _isFullScreen
-                                ? Icons.fullscreen_exit_rounded
-                                : Icons.fullscreen_rounded,
-                            color: Colors.black,
-                            size: 22,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            _isFullScreen ? "EXIT" : "TACTICAL MAP",
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 0.5,
+              // Full Screen Toggle Button (Always on top)
+              Positioned(
+                top: _isFullScreen
+                    ? MediaQuery.of(context).padding.top + 16
+                    : 16, // Body relative
+                right: 16,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        try {
+                          _savedCenter = _mapController.camera.center;
+                          _savedZoom = _mapController.camera.zoom;
+                        } catch (_) {}
+                        setState(() => _isFullScreen = !_isFullScreen);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.15),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
                             ),
-                          ),
-                        ],
+                          ],
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              _isFullScreen
+                                  ? Icons.fullscreen_exit_rounded
+                                  : Icons.fullscreen_rounded,
+                              color: Colors.black,
+                              size: 22,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              _isFullScreen ? "EXIT" : "TACTICAL MAP",
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  
-                  // Map Refresh Button
-                  GestureDetector(
-                    onTap: _recenterMap,
-                    child: Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.15),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                        border: Border.all(color: Colors.grey.shade200),
-                      ),
-                      child: const Icon(
-                        Icons.my_location_rounded,
-                        color: Colors.blue,
-                        size: 20,
+                    const SizedBox(height: 12),
+
+                    // Map Refresh Button
+                    GestureDetector(
+                      onTap: _recenterMap,
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.15),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: const Icon(
+                          Icons.my_location_rounded,
+                          color: Colors.blue,
+                          size: 20,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
             ],
           ),
-          bottomNavigationBar: _isFullScreen ? null : _buildBottomActions(context, alertId, data, user),
+          bottomNavigationBar: _isFullScreen
+              ? null
+              : _buildBottomActions(context, alertId, data, user),
         );
       },
     );
   }
 
-  Widget _buildMapSection(BuildContext context, LatLng? victimPos, Map<String, dynamic> data) {
+  Widget _buildMapSection(
+    BuildContext context,
+    LatLng? victimPos,
+    Map<String, dynamic> data,
+  ) {
     final mapWidget = ClipRect(
-        child: Stack(
-          children: [
-            FlutterMap(
-              mapController: _mapController,
-              options: MapOptions(
-                initialCenter: _savedCenter ?? victimPos ?? const LatLng(0, 0),
-                initialZoom: _savedZoom,
-                interactionOptions: const InteractionOptions(
-                  flags: InteractiveFlag.all,
-                ),
+      child: Stack(
+        children: [
+          FlutterMap(
+            mapController: _mapController,
+            options: MapOptions(
+              initialCenter: _savedCenter ?? victimPos ?? const LatLng(0, 0),
+              initialZoom: _savedZoom,
+              interactionOptions: const InteractionOptions(
+                flags: InteractiveFlag.all,
               ),
-              children: [
-                TileLayer(
-                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                  userAgentPackageName: 'com.example.geotour',
-                ),
-                if (_routePoints.isNotEmpty)
-                  PolylineLayer(
-                    polylines: [
-                      Polyline(
-                        points: _routePoints,
-                        color: Colors.blueAccent,
-                        strokeWidth: 5,
-                      ),
-                    ],
-                  ),
-                if (victimPos != null || _lastPolicePos != null)
-                  MarkerLayer(
-                    markers: [
-                      if (victimPos != null)
-                        Marker(
-                          point: victimPos,
-                          width: 80,
-                          height: 80,
-                          child: Column(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withValues(alpha: 0.8),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Text(
-                                  "Victim",
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                              const Icon(
-                                Icons.location_on,
-                                color: Colors.red,
-                                size: 40,
-                              ),
-                            ],
-                          ),
-                        ),
-                      if (_lastPolicePos != null)
-                        Marker(
-                          point: _lastPolicePos!,
-                          width: 40,
-                          height: 40,
-                          child: const Icon(
-                            Icons.my_location,
-                            color: Colors.blue,
-                            size: 30,
-                          ),
-                        ),
-                    ],
-                  ),
-              ],
             ),
-            if (_distance != null)
-              Positioned(
-                top: _isFullScreen ? MediaQuery.of(context).padding.top + 80 : 16,
-                left: 16,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 8,
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.directions_car, color: Colors.blue, size: 20),
-                      const SizedBox(width: 8),
-                      Text(
-                        "$_distance • $_duration",
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                      ),
-                    ],
-                  ),
-                ),
+            children: [
+              TileLayer(
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                userAgentPackageName: 'com.example.geotour',
               ),
-            
-            if (victimPos != null)
-              Positioned(
-                bottom: _isFullScreen ? MediaQuery.of(context).padding.bottom + 100 : 16,
-                right: 16,
-                child: ElevatedButton(
-                  onPressed: () => _openInMaps(victimPos.latitude, victimPos.longitude),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
-                    foregroundColor: Colors.white,
-                    elevation: 4,
-                    shadowColor: Colors.black45,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    shape: const StadiumBorder(),
-                  ),
-                  child: const Text(
-                    "Navigate",
-                    style: TextStyle(
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 0.5,
-                      fontSize: 13,
+              if (_routePoints.isNotEmpty)
+                PolylineLayer(
+                  polylines: [
+                    Polyline(
+                      points: _routePoints,
+                      color: Colors.blueAccent,
+                      strokeWidth: 5,
                     ),
-                  ),
+                  ],
                 ),
-              ),
-            
-            if (_isFullScreen)
-               Positioned(
-                bottom: MediaQuery.of(context).padding.bottom + 20,
-                left: 16,
-                right: 16,
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 10),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      const CircleAvatar(
-                        backgroundColor: Colors.red,
-                        child: Icon(Icons.emergency, color: Colors.white),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
+              if (victimPos != null || _lastPolicePos != null)
+                MarkerLayer(
+                  markers: [
+                    if (victimPos != null)
+                      Marker(
+                        point: victimPos,
+                        width: 80,
+                        height: 80,
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(
-                              data['victimName'] ?? data['name'] ?? "Victim",
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.8),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Text(
+                                "Victim",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
-                            Text(
-                              data['details'] ?? "Emergency Alert",
-                              style: const TextStyle(color: Colors.grey, fontSize: 12),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                            const Icon(
+                              Icons.location_on,
+                              color: Colors.red,
+                              size: 40,
                             ),
                           ],
                         ),
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.chat_bubble_rounded, color: Colors.blue),
-                        onPressed: () {
-                           Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => PoliceChatScreen(
-                                chatId: data['id'],
-                                recipientId: data['userId'] ?? data['victimId'] ?? "",
-                                recipientName: data['name'] ?? "Victim",
-                              ),
-                            ),
-                          );
-                        },
+                    if (_lastPolicePos != null)
+                      Marker(
+                        point: _lastPolicePos!,
+                        width: 40,
+                        height: 40,
+                        child: const Icon(
+                          Icons.my_location,
+                          color: Colors.blue,
+                          size: 30,
+                        ),
                       ),
-                    ],
+                  ],
+                ),
+            ],
+          ),
+          if (_distance != null)
+            Positioned(
+              top: _isFullScreen ? MediaQuery.of(context).padding.top + 80 : 16,
+              left: 16,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 8,
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.directions_car,
+                      color: Colors.blue,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      "$_distance • $_duration",
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+          if (victimPos != null)
+            Positioned(
+              bottom: _isFullScreen
+                  ? MediaQuery.of(context).padding.bottom + 100
+                  : 16,
+              right: 16,
+              child: ElevatedButton(
+                onPressed: () =>
+                    _openInMaps(victimPos.latitude, victimPos.longitude),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.black,
+                  foregroundColor: Colors.white,
+                  elevation: 4,
+                  shadowColor: Colors.black45,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                  shape: const StadiumBorder(),
+                ),
+                child: const Text(
+                  "Navigate",
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.5,
+                    fontSize: 13,
                   ),
                 ),
               ),
-          ],
-        ),
-      );
+            ),
+
+          if (_isFullScreen)
+            Positioned(
+              bottom: MediaQuery.of(context).padding.bottom + 20,
+              left: 16,
+              right: 16,
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 10,
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    const CircleAvatar(
+                      backgroundColor: Colors.red,
+                      child: Icon(Icons.emergency, color: Colors.white),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            data['victimName'] ?? data['name'] ?? "Victim",
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          Text(
+                            data['details'] ?? "Emergency Alert",
+                            style: const TextStyle(
+                              color: Colors.grey,
+                              fontSize: 12,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(
+                        Icons.chat_bubble_rounded,
+                        color: Colors.blue,
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => PoliceChatScreen(
+                              chatId: data['id'],
+                              recipientId:
+                                  data['userId'] ?? data['victimId'] ?? "",
+                              recipientName: data['name'] ?? "Victim",
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
 
     if (_isFullScreen) {
       return mapWidget;
@@ -652,7 +702,13 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
       );
     }
   }
-  Widget _buildBottomActions(BuildContext context, String alertId, Map<String, dynamic> data, User? user) {
+
+  Widget _buildBottomActions(
+    BuildContext context,
+    String alertId,
+    Map<String, dynamic> data,
+    User? user,
+  ) {
     final String acceptedBy = data['acceptedBy'] ?? '';
     final String acceptedByName = data['acceptedByName'] ?? '';
 
@@ -742,8 +798,16 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
                                 MaterialPageRoute(
                                   builder: (context) => PoliceChatScreen(
                                     chatId: alertId,
-                                    recipientId: data['userId'] ?? data['victimId'] ?? data['touristId'] ?? "",
-                                    recipientName: data['name'] ?? data['victimName'] ?? data['username'] ?? "Victim",
+                                    recipientId:
+                                        data['userId'] ??
+                                        data['victimId'] ??
+                                        data['touristId'] ??
+                                        "",
+                                    recipientName:
+                                        data['name'] ??
+                                        data['victimName'] ??
+                                        data['username'] ??
+                                        "Victim",
                                   ),
                                 ),
                               );
@@ -1055,6 +1119,7 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
                               if (mounted) {
                                 nav.pop(); // Close bottom sheet
                                 if (success) {
+                                  // ignore: use_build_context_synchronously
                                   PremiumToast.show(
                                     context,
                                     title: "Alert Assigned",
@@ -1063,6 +1128,7 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
                                   );
                                   nav.pop(); // Close details screen
                                 } else {
+                                  // ignore: use_build_context_synchronously
                                   PremiumToast.show(
                                     context,
                                     title: "Assignment Failed",
@@ -1114,7 +1180,8 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
         final touristId =
             data['touristId'] ?? touristData?['touristId'] ?? "N/A";
         // Resolve name from all possible fields across alert doc and tourist profile
-        final String victimName = data['name'] ??
+        final String victimName =
+            data['name'] ??
             data['victimName'] ??
             touristData?['username'] ??
             touristData?['name'] ??
@@ -1141,11 +1208,7 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
             padding: const EdgeInsets.all(24),
             child: Column(
               children: [
-                _buildInfoRow(
-                  Icons.person_outline,
-                  "Victim",
-                  victimName,
-                ),
+                _buildInfoRow(Icons.person_outline, "Victim", victimName),
                 _buildInfoRow(Icons.badge_outlined, "Tourist ID", touristId),
                 const Divider(height: 32, thickness: 0.5),
                 _buildInfoRow(
@@ -1187,7 +1250,8 @@ class _VictimDetailsScreenState extends State<VictimDetailsScreen> {
           );
         }
 
-        final touristData = snapshot.data?.data() as Map<String, dynamic>? ?? {};
+        final touristData =
+            snapshot.data?.data() as Map<String, dynamic>? ?? {};
         final medicalInfo = touristData['medicalInfo'] as Map<String, dynamic>?;
 
         // If medical info is null, we still show the section but with "N/A" values
